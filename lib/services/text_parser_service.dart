@@ -24,16 +24,24 @@ class TextParserService {
 
     // STEP 2 — Root topic
     String rootTitle = 'My Thought';
-    
+
     // Check for a heading line (ALL CAPS or ends with ':')
-    final lines = trimmedText.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+    final lines = trimmedText
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
     bool foundHeading = false;
     if (lines.isNotEmpty) {
       final firstLine = lines.first;
-      final isAllCaps = firstLine == firstLine.toUpperCase() && RegExp(r'[A-Z]').hasMatch(firstLine);
+      final isAllCaps =
+          firstLine == firstLine.toUpperCase() &&
+          RegExp(r'[A-Z]').hasMatch(firstLine);
       final endsWithColon = firstLine.endsWith(':');
       if (isAllCaps || endsWithColon) {
-        rootTitle = endsWithColon ? firstLine.substring(0, firstLine.length - 1).trim() : firstLine;
+        rootTitle = endsWithColon
+            ? firstLine.substring(0, firstLine.length - 1).trim()
+            : firstLine;
         foundHeading = true;
       }
     }
@@ -45,7 +53,13 @@ class TextParserService {
     if (cleanSentences.isEmpty) {
       return SnapMapData(
         title: rootTitle,
-        nodes: [],
+        nodes: [
+          MindMapNode(
+            title: '📌 Key Points',
+            children: [MindMapNode(title: _trimToWords(trimmedText, 18))],
+            colorValue: nodeColors.first.toARGB32(),
+          ),
+        ],
         rawText: text,
       );
     }
@@ -67,19 +81,48 @@ class TextParserService {
         ? cleanSentences.skip(1).toList()
         : cleanSentences;
 
+    if (sentencesToCategorize.isEmpty) {
+      categoryGroups['📌 Key Points']!.add(cleanSentences.first);
+    }
+
     for (var sentence in sentencesToCategorize) {
       final lower = sentence.toLowerCase();
       if (_matchesKeywords(lower, ['who', 'team', 'person', 'role', 'name'])) {
         categoryGroups['🧑 People']!.add(sentence);
-      } else if (_matchesKeywords(lower, ['goal', 'objective', 'target', 'aim'])) {
+      } else if (_matchesKeywords(lower, [
+        'goal',
+        'objective',
+        'target',
+        'aim',
+      ])) {
         categoryGroups['🎯 Goals']!.add(sentence);
-      } else if (_matchesKeywords(lower, ['how', 'step', 'process', 'method'])) {
+      } else if (_matchesKeywords(lower, [
+        'how',
+        'step',
+        'process',
+        'method',
+      ])) {
         categoryGroups['⚙️ Process']!.add(sentence);
-      } else if (_matchesKeywords(lower, ['why', 'reason', 'because', 'since'])) {
+      } else if (_matchesKeywords(lower, [
+        'why',
+        'reason',
+        'because',
+        'since',
+      ])) {
         categoryGroups['💡 Rationale']!.add(sentence);
-      } else if (_matchesKeywords(lower, ['when', 'timeline', 'deadline', 'by'])) {
+      } else if (_matchesKeywords(lower, [
+        'when',
+        'timeline',
+        'deadline',
+        'by',
+      ])) {
         categoryGroups['📅 Timeline']!.add(sentence);
-      } else if (_matchesKeywords(lower, ['risk', 'problem', 'issue', 'challenge'])) {
+      } else if (_matchesKeywords(lower, [
+        'risk',
+        'problem',
+        'issue',
+        'challenge',
+      ])) {
         categoryGroups['⚠️ Risks']!.add(sentence);
       } else {
         categoryGroups['📌 Key Points']!.add(sentence);
@@ -136,21 +179,18 @@ class TextParserService {
     // STEP 6 — Assign colors & Build nodes
     final List<MindMapNode> branchNodes = [];
     int colorIndex = 0;
-    
+
     // Maintain category ordering for visual consistency (or sorted size)
     for (var entry in activeCategories) {
       final category = entry.key;
       final childSentences = finalizedGroups[category] ?? [];
       if (childSentences.isEmpty) continue;
 
-      final colorValue = nodeColors[colorIndex % nodeColors.length].value;
+      final colorValue = nodeColors[colorIndex % nodeColors.length].toARGB32();
       colorIndex++;
 
       final List<MindMapNode> childrenNodes = childSentences.map((text) {
-        return MindMapNode(
-          title: text,
-          colorValue: colorValue,
-        );
+        return MindMapNode(title: text, colorValue: colorValue);
       }).toList();
 
       branchNodes.add(
@@ -163,11 +203,7 @@ class TextParserService {
     }
 
     // STEP 7 — Return SnapMapData
-    return SnapMapData(
-      title: rootTitle,
-      nodes: branchNodes,
-      rawText: text,
-    );
+    return SnapMapData(title: rootTitle, nodes: branchNodes, rawText: text);
   }
 
   static String _trimToWords(String s, int maxWords) {
@@ -188,12 +224,22 @@ class TextParserService {
   }
 
   static double _checkWordOverlap(String a, String b) {
-    final wordsA = a.toLowerCase().split(RegExp(r'\W+')).where((w) => w.length >= 2).toSet();
-    final wordsB = b.toLowerCase().split(RegExp(r'\W+')).where((w) => w.length >= 2).toSet();
+    final wordsA = a
+        .toLowerCase()
+        .split(RegExp(r'\W+'))
+        .where((w) => w.length >= 2)
+        .toSet();
+    final wordsB = b
+        .toLowerCase()
+        .split(RegExp(r'\W+'))
+        .where((w) => w.length >= 2)
+        .toSet();
     if (wordsA.isEmpty || wordsB.isEmpty) return 0.0;
 
     final intersection = wordsA.intersection(wordsB);
-    final minLength = wordsA.length < wordsB.length ? wordsA.length : wordsB.length;
+    final minLength = wordsA.length < wordsB.length
+        ? wordsA.length
+        : wordsB.length;
     return intersection.length / minLength;
   }
 }

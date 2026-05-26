@@ -43,33 +43,43 @@ class _ShimmerLoaderState extends State<ShimmerLoader>
           color: bgLight,
           child: Stack(
             children: [
-              // Draw a skeleton mind map using a CustomPaint
-              Center(
-                child: CustomPaint(
-                  size: const Size(400, 400),
-                  painter: _ShimmerPainter(
-                    gradientOffset: _gradientPosition.value,
-                  ),
-                ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final size = constraints.biggest.shortestSide.clamp(
+                    240.0,
+                    400.0,
+                  );
+                  return Center(
+                    child: CustomPaint(
+                      size: Size.square(size),
+                      painter: _ShimmerPainter(
+                        gradientOffset: _gradientPosition.value,
+                      ),
+                    ),
+                  );
+                },
               ),
-              Positioned(
-                bottom: 60,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Structuring your thoughts...',
-                        style: headingStyle(fontSize: 18, color: textDark),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Formatting, categorizing, and connecting nodes offline',
-                        style: bodyStyle(fontSize: 13, color: textMid),
-                      ),
-                    ],
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 44),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Structuring your thoughts...',
+                          textAlign: TextAlign.center,
+                          style: headingStyle(fontSize: 18, color: textDark),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Formatting, categorizing, and connecting nodes offline',
+                          textAlign: TextAlign.center,
+                          style: bodyStyle(fontSize: 13, color: textMid),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -89,8 +99,7 @@ class _ShimmerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()
-      ..style = PaintingStyle.fill;
+    final paint = Paint()..style = PaintingStyle.fill;
 
     // Create a horizontal shimmer linear gradient shader
     final shader = LinearGradient(
@@ -147,10 +156,20 @@ class _ShimmerPainter extends CustomPainter {
 
       final path1 = Path()
         ..moveTo(branch.dx, branch.dy)
-        ..quadraticBezierTo(branch.dx + direction * 20, branch.dy, child1.dx, child1.dy);
+        ..quadraticBezierTo(
+          branch.dx + direction * 20,
+          branch.dy,
+          child1.dx,
+          child1.dy,
+        );
       final path2 = Path()
         ..moveTo(branch.dx, branch.dy)
-        ..quadraticBezierTo(branch.dx + direction * 20, branch.dy, child2.dx, child2.dy);
+        ..quadraticBezierTo(
+          branch.dx + direction * 20,
+          branch.dy,
+          child2.dx,
+          child2.dy,
+        );
 
       canvas.drawPath(path1, linePaint);
       canvas.drawPath(path2, linePaint);

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-const Color primary = Color(0xFF5E5CE6);   // bright violet/indigo
-const Color accent = Color(0xFFD946EF);    // glowing magenta/pink
-const Color bgLight = Color(0xFFFFFFFF);   // Solid White background
-const Color surface = Color(0xFFFFFFFF);   // White card surface
-const Color textDark = Color(0xFF1C1C1E);  // Dark typography
-const Color textMid = Color(0xFF8E8E93);   // Gray text slate
+const Color primary = Color(0xFF5E5CE6); // bright violet/indigo
+const Color accent = Color(0xFFD946EF); // glowing magenta/pink
+const Color bgLight = Color(0xFFFFFFFF); // Solid White background
+const Color surface = Color(0xFFFFFFFF); // White card surface
+const Color textDark = Color(0xFF1C1C1E); // Dark typography
+const Color textMid = Color(0xFF8E8E93); // Gray text slate
 
 const List<Color> nodeColors = [
   Color(0xFF818CF8), // indigo
@@ -106,6 +106,7 @@ TextStyle headingStyle({
     color: color,
     fontWeight: fontWeight,
     letterSpacing: -0.5,
+    decoration: TextDecoration.none,
   );
 }
 
@@ -122,5 +123,6 @@ TextStyle bodyStyle({
     fontWeight: fontWeight,
     height: height,
     letterSpacing: -0.2,
+    decoration: TextDecoration.none,
   );
 }

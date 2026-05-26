@@ -8,6 +8,7 @@ import '../themes/app_theme.dart';
 import '../widgets/ambient_background.dart';
 import 'input_screen.dart';
 import 'mindmap_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,12 +44,33 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _formatDate(DateTime dt) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${dt.day}th ${months[dt.month - 1]} ${dt.year}';
   }
 
   void _openInput() {
-    Navigator.of(context).push(CupertinoPageRoute(builder: (context) => const InputScreen()));
+    Navigator.of(
+      context,
+    ).push(CupertinoPageRoute(builder: (context) => const InputScreen()));
+  }
+
+  void _openSettings() {
+    Navigator.of(
+      context,
+    ).push(CupertinoPageRoute(builder: (context) => const SettingsScreen()));
   }
 
   @override
@@ -60,7 +82,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final filteredMaps = maps.where((map) {
       if (_searchQuery.isEmpty) return true;
       final q = _searchQuery.toLowerCase();
-      return map.title.toLowerCase().contains(q) || map.rawText.toLowerCase().contains(q);
+      return map.title.toLowerCase().contains(q) ||
+          map.rawText.toLowerCase().contains(q);
     }).toList();
 
     return Scaffold(
@@ -132,7 +155,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       });
                                     },
                                     child: Padding(
-                                      padding: const EdgeInsets.only(right: 8.0),
+                                      padding: const EdgeInsets.only(
+                                        right: 8.0,
+                                      ),
                                       child: Icon(
                                         CupertinoIcons.clear_circled_solid,
                                         color: textDark.withOpacity(0.4),
@@ -193,10 +218,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Grid / List content area
                     Expanded(
                       child: provider.isLoading
-                          ? const Center(child: CupertinoActivityIndicator(radius: 14))
+                          ? const Center(
+                              child: CupertinoActivityIndicator(radius: 14),
+                            )
                           : filteredMaps.isEmpty
-                              ? _buildEmptyState()
-                              : _buildNotesGrid(filteredMaps, provider),
+                          ? _buildEmptyState()
+                          : _buildNotesGrid(filteredMaps, provider),
                     ),
                     const SizedBox(height: 100), // Space for bottom dock
                   ],
@@ -211,15 +238,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Container(
                   height: 72,
                   decoration: BoxDecoration(
-                    color: surface.withOpacity(0.9),
+                    color: surface.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(40),
                     border: Border.all(
-                      color: textDark.withOpacity(0.08),
+                      color: textDark.withValues(alpha: 0.08),
                       width: 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -230,9 +257,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildNavBarItem(0, CupertinoIcons.home),
-                      _buildNavBarItem(1, CupertinoIcons.square_grid_2x2),
+                      _buildNavBarItem(1, CupertinoIcons.plus_app),
                       _buildNavBarItem(2, CupertinoIcons.graph_square),
-                      _buildNavBarItem(3, CupertinoIcons.person),
+                      _buildNavBarItem(3, CupertinoIcons.settings),
                     ],
                   ),
                 ),
@@ -254,6 +281,8 @@ class _HomeScreenState extends State<HomeScreen> {
         });
         if (index == 1) {
           _openInput();
+        } else if (index == 3) {
+          _openSettings();
         }
       },
       child: AnimatedContainer(
@@ -278,7 +307,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(CupertinoIcons.square_stack_3d_up, color: textDark.withOpacity(0.3), size: 64),
+          Icon(
+            CupertinoIcons.square_stack_3d_up,
+            color: textDark.withOpacity(0.3),
+            size: 64,
+          ),
           const SizedBox(height: 16),
           Text(
             'No notes found',
@@ -309,106 +342,117 @@ class _HomeScreenState extends State<HomeScreen> {
         final cardColor = _cardColors[index % _cardColors.length];
 
         return Dismissible(
-          key: Key(map.id),
-          direction: DismissDirection.endToStart,
-          background: Container(
-            decoration: BoxDecoration(
-              color: Colors.redAccent.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            alignment: Alignment.center,
-            child: const Icon(CupertinoIcons.delete, color: Colors.redAccent, size: 28),
-          ),
-          onDismissed: (_) async {
-            await provider.deleteMap(map.id);
-          },
-          child: GestureDetector(
-            onTap: () {
-              provider.selectMap(map);
-              Navigator.of(context).push(CupertinoPageRoute(builder: (context) => const MindmapScreen()));
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+              key: Key(map.id),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  CupertinoIcons.delete,
+                  color: Colors.redAccent,
+                  size: 28,
+                ),
               ),
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        map.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: headingStyle(
-                          fontSize: 18,
-                          color: Colors.black,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatDate(map.createdAt),
-                        style: bodyStyle(
-                          fontSize: 11,
-                          color: Colors.black54,
-                          fontWeight: FontWeight.w500,
-                        ),
+              onDismissed: (_) async {
+                await provider.deleteMap(map.id);
+              },
+              child: GestureDetector(
+                onTap: () {
+                  provider.selectMap(map);
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (context) => const MindmapScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  Text(
-                    map.rawText,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: bodyStyle(
-                      fontSize: 12,
-                      color: Colors.black.withOpacity(0.6),
-                      height: 1.3,
-                    ),
-                  ),
-                  Row(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: const BoxDecoration(
-                          color: Colors.black,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          CupertinoIcons.flowchart,
-                          color: Colors.white,
-                          size: 14,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            map.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: headingStyle(
+                              fontSize: 18,
+                              color: Colors.black,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatDate(map.createdAt),
+                            style: bodyStyle(
+                              fontSize: 11,
+                              color: Colors.black54,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                       Text(
-                        '${map.totalNodeCount} nodes',
+                        map.rawText,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: bodyStyle(
-                          fontSize: 11,
-                          color: Colors.black87,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.black.withOpacity(0.6),
+                          height: 1.3,
                         ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: const BoxDecoration(
+                              color: Colors.black,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              CupertinoIcons.flowchart,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                          ),
+                          Text(
+                            '${map.totalNodeCount} nodes',
+                            style: bodyStyle(
+                              fontSize: 11,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ).animate().fadeIn(delay: (index * 80).ms).scale(begin: const Offset(0.9, 0.9));
+            )
+            .animate()
+            .fadeIn(delay: (index * 80).ms)
+            .scale(begin: const Offset(0.9, 0.9));
       },
     );
   }

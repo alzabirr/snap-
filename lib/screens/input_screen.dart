@@ -108,12 +108,14 @@ class _InputScreenState extends State<InputScreen>
       _isParsing = true;
     });
 
-    final parsedData = await Future.delayed(
-      const Duration(milliseconds: 650),
-      () => TextParserService.parse(text),
-    );
+    try {
+      final parsedData = await Future.delayed(
+        const Duration(milliseconds: 650),
+        () => TextParserService.parse(text),
+      );
 
-    if (mounted) {
+      if (!mounted) return;
+
       if (parsedData.nodes.isEmpty) {
         setState(() => _isParsing = false);
         _showToast("Couldn't find structure — try adding more detail");
@@ -130,6 +132,10 @@ class _InputScreenState extends State<InputScreen>
           CupertinoPageRoute(builder: (context) => const MindmapScreen()),
         );
       }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isParsing = false);
+      _showToast('Could not structure this snap. Please try again.');
     }
   }
 
@@ -149,14 +155,25 @@ class _InputScreenState extends State<InputScreen>
               child: Row(
                 children: [
                   CupertinoButton(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Icon(CupertinoIcons.chevron_left, color: textDark, size: 22),
+                    child: const Icon(
+                      CupertinoIcons.chevron_left,
+                      color: textDark,
+                      size: 22,
+                    ),
                   ),
                   const Spacer(),
                   Text(
                     'New Snap',
-                    style: headingStyle(fontSize: 17, color: textDark, fontWeight: FontWeight.w600),
+                    style: headingStyle(
+                      fontSize: 17,
+                      color: textDark,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const Spacer(),
                   // Word count badge
@@ -164,14 +181,21 @@ class _InputScreenState extends State<InputScreen>
                     opacity: _charCount > 0 ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 200),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
-                        color: primary.withOpacity(0.1),
+                        color: primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         '$_charCount',
-                        style: bodyStyle(fontSize: 12, color: primary, fontWeight: FontWeight.w600),
+                        style: bodyStyle(
+                          fontSize: 12,
+                          color: primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -187,20 +211,26 @@ class _InputScreenState extends State<InputScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-
                     // ── Large heading ─────────────────────────
                     Text(
-                      'What\'s on your mind?',
-                      style: headingStyle(
-                        fontSize: 28,
-                        color: textDark,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1, end: 0),
+                          'What\'s on your mind?',
+                          style: headingStyle(
+                            fontSize: 28,
+                            color: textDark,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(duration: 300.ms)
+                        .slideY(begin: 0.1, end: 0),
                     const SizedBox(height: 4),
                     Text(
                       'Paste text, notes or a brain dump — we\'ll structure it.',
-                      style: bodyStyle(fontSize: 13, color: textMid, height: 1.4),
+                      style: bodyStyle(
+                        fontSize: 13,
+                        color: textMid,
+                        height: 1.4,
+                      ),
                     ).animate().fadeIn(delay: 80.ms, duration: 300.ms),
                     const SizedBox(height: 20),
 
@@ -217,8 +247,8 @@ class _InputScreenState extends State<InputScreen>
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: _charCount > 0
-                                ? primary.withOpacity(0.25)
-                                : textDark.withOpacity(0.07),
+                                ? primary.withValues(alpha: 0.25)
+                                : textDark.withValues(alpha: 0.07),
                             width: 1.5,
                           ),
                         ),
@@ -228,7 +258,8 @@ class _InputScreenState extends State<InputScreen>
                           children: [
                             CupertinoTextField(
                               controller: _textController,
-                              placeholder: 'Start typing or paste your text here…',
+                              placeholder:
+                                  'Start typing or paste your text here…',
                               minLines: 9,
                               maxLines: null,
                               keyboardType: TextInputType.multiline,
@@ -238,7 +269,7 @@ class _InputScreenState extends State<InputScreen>
                               ),
                               placeholderStyle: bodyStyle(
                                 fontSize: 15,
-                                color: textMid.withOpacity(0.7),
+                                color: textMid.withValues(alpha: 0.7),
                                 height: 1.5,
                               ),
                               style: bodyStyle(
@@ -255,14 +286,17 @@ class _InputScreenState extends State<InputScreen>
                                     width: 6,
                                     height: 6,
                                     decoration: BoxDecoration(
-                                      color: primary.withOpacity(0.6),
+                                      color: primary.withValues(alpha: 0.6),
                                       shape: BoxShape.circle,
                                     ),
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
                                     '$_charCount characters · ${(_charCount / 5).round()} words',
-                                    style: bodyStyle(fontSize: 11, color: textMid),
+                                    style: bodyStyle(
+                                      fontSize: 11,
+                                      color: textMid,
+                                    ),
                                   ),
                                   const Spacer(),
                                   GestureDetector(
@@ -305,7 +339,7 @@ class _InputScreenState extends State<InputScreen>
                         Expanded(
                           child: Container(
                             height: 1,
-                            color: textDark.withOpacity(0.06),
+                            color: textDark.withValues(alpha: 0.06),
                           ),
                         ),
                       ],
@@ -335,27 +369,34 @@ class _InputScreenState extends State<InputScreen>
                             duration: const Duration(milliseconds: 200),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? primary.withOpacity(0.08)
+                                  ? primary.withValues(alpha: 0.08)
                                   : const Color(0xFFF7F7F9),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: isSelected
-                                    ? primary.withOpacity(0.4)
-                                    : textDark.withOpacity(0.07),
+                                    ? primary.withValues(alpha: 0.4)
+                                    : textDark.withValues(alpha: 0.07),
                                 width: 1.5,
                               ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(t['emoji']!, style: const TextStyle(fontSize: 18)),
+                                Text(
+                                  t['emoji']!,
+                                  style: const TextStyle(fontSize: 18),
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   t['label']!,
                                   style: bodyStyle(
                                     fontSize: 13,
-                                    color: isSelected ? primary : textDark.withOpacity(0.75),
-                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                    color: isSelected
+                                        ? primary
+                                        : textDark.withValues(alpha: 0.75),
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
                                   ),
                                 ),
                               ],
@@ -373,46 +414,55 @@ class _InputScreenState extends State<InputScreen>
             // ── Sticky Snap It Button ─────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: GestureDetector(
-                onTap: _handleSnap,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  height: 58,
-                  decoration: BoxDecoration(
-                    color: _charCount > 0 ? primary : textDark.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: _charCount > 0
-                        ? [
-                            BoxShadow(
-                              color: primary.withOpacity(0.3),
-                              blurRadius: 18,
-                              offset: const Offset(0, 6),
+              child:
+                  GestureDetector(
+                    onTap: _handleSnap,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: _charCount > 0
+                            ? primary
+                            : textDark.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: _charCount > 0
+                            ? [
+                                BoxShadow(
+                                  color: primary.withValues(alpha: 0.3),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ]
+                            : [],
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            CupertinoIcons.sparkles,
+                            color: _charCount > 0 ? Colors.white : textMid,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Snap It',
+                            style: headingStyle(
+                              fontSize: 17,
+                              color: _charCount > 0 ? Colors.white : textMid,
+                              fontWeight: FontWeight.w600,
                             ),
-                          ]
-                        : [],
-                  ),
-                  alignment: Alignment.center,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        CupertinoIcons.sparkles,
-                        color: _charCount > 0 ? Colors.white : textMid,
-                        size: 18,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Snap It',
-                        style: headingStyle(
-                          fontSize: 17,
-                          color: _charCount > 0 ? Colors.white : textMid,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+                    ),
+                  ).animate().slideY(
+                    begin: 0.3,
+                    end: 0,
+                    delay: 100.ms,
+                    duration: 400.ms,
+                    curve: Curves.easeOutBack,
                   ),
-                ),
-              ).animate().slideY(begin: 0.3, end: 0, delay: 100.ms, duration: 400.ms, curve: Curves.easeOutBack),
             ),
           ],
         ),
