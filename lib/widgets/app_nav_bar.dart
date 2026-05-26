@@ -1,9 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../themes/app_theme.dart';
-import 'glass_card.dart';
 
 class AppNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -22,38 +22,84 @@ class AppNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      minimum: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      child: Center(
-        child: glassCard(
-          opacity: 0.22,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          borderRadius: BorderRadius.circular(30),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _NavItem(
-                icon: CupertinoIcons.square_grid_2x2,
-                label: 'Home',
-                isSelected: selectedIndex == 0,
-                onTap: onHomeTap,
-              ),
-              const _NavDivider(),
-              _NavItem(
-                icon: CupertinoIcons.plus_circle,
-                label: 'New',
-                isSelected: selectedIndex == 1,
-                onTap: onNewTap,
-              ),
-              const _NavDivider(),
-              _NavItem(
-                icon: CupertinoIcons.settings,
-                label: 'Tools',
-                isSelected: selectedIndex == 2,
-                onTap: onSettingsTap,
-              ),
-            ],
+      minimum: const EdgeInsets.fromLTRB(18, 0, 18, 14),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          child: Container(
+            height: 70,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.82),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1A312E81),
+                  blurRadius: 24,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _NavItem(
+                    icon: CupertinoIcons.square_grid_2x2,
+                    label: 'Home',
+                    isSelected: selectedIndex == 0,
+                    onTap: onHomeTap,
+                  ),
+                ),
+                _NewSnapButton(onTap: onNewTap),
+                Expanded(
+                  child: _NavItem(
+                    icon: CupertinoIcons.slider_horizontal_3,
+                    label: 'Tools',
+                    isSelected: selectedIndex == 2,
+                    onTap: onSettingsTap,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _NewSnapButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _NewSnapButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: onTap,
+      child: Container(
+        width: 68,
+        height: 54,
+        margin: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [primary, accent],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: primary.withValues(alpha: 0.3),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: const Icon(CupertinoIcons.plus, color: Colors.white, size: 26),
       ),
     );
   }
@@ -74,16 +120,19 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected ? primary : textDark;
+    final color = isSelected ? primary : textMid;
     return CupertinoButton(
       padding: EdgeInsets.zero,
-      onPressed: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: SizedBox(
-        width: 48,
-        height: 46,
+      onPressed: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: 50,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? primary.withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -94,7 +143,7 @@ class _NavItem extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: bodyStyle(
-                fontSize: 10,
+                fontSize: 11,
                 color: color,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
               ),
@@ -102,20 +151,6 @@ class _NavItem extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _NavDivider extends StatelessWidget {
-  const _NavDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1.2,
-      height: 24,
-      color: Colors.white.withValues(alpha: 0.3),
-      margin: const EdgeInsets.symmetric(horizontal: 12),
     );
   }
 }

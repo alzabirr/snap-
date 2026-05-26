@@ -1,15 +1,12 @@
-import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show Colors, BoxShadow;
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../providers/map_provider.dart';
 import '../services/text_parser_service.dart';
 import '../themes/app_theme.dart';
-import '../widgets/glass_card.dart';
 import '../widgets/shimmer_loader.dart';
-import 'home_screen.dart';
 import 'mindmap_screen.dart';
 
 class InputScreen extends StatefulWidget {
@@ -26,8 +23,16 @@ class _InputScreenState extends State<InputScreen>
   late Animation<double> _shakeAnimation;
   bool _isParsing = false;
   int _charCount = 0;
+  String? _selectedTemplate;
 
-  final Map<String, String> _templates = {
+  final List<Map<String, String>> _templates = [
+    {'emoji': '📝', 'label': 'Meeting', 'key': '📝 Meeting Notes'},
+    {'emoji': '💡', 'label': 'Brainstorm', 'key': '💡 Brainstorm'},
+    {'emoji': '📚', 'label': 'Study', 'key': '📚 Study Notes'},
+    {'emoji': '🚀', 'label': 'Product', 'key': '🚀 Product Plan'},
+  ];
+
+  final Map<String, String> _templateContents = {
     '📝 Meeting Notes':
         'PROJECT STATUS REVIEW MEETING:\nOur main goal is to finalize the UI redesign by Friday. Who is responsible? Sarah will handle the Figma mockups, and James will lead the backend team. For our timeline, we must deploy the staging environment by Thursday. How will we execute this? We will follow a two-step review process. However, the risk is a potential delay in API integration.',
     '💡 Brainstorm':
@@ -43,7 +48,6 @@ class _InputScreenState extends State<InputScreen>
     super.initState();
     _textController.addListener(_onTextChanged);
 
-    // Setup shake animation for validation failures
     _shakeController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
@@ -51,10 +55,10 @@ class _InputScreenState extends State<InputScreen>
 
     _shakeAnimation =
         TweenSequence<double>([
-          TweenSequenceItem(tween: Tween(begin: 0.0, end: 12.0), weight: 1),
-          TweenSequenceItem(tween: Tween(begin: 12.0, end: -12.0), weight: 2),
-          TweenSequenceItem(tween: Tween(begin: -12.0, end: 12.0), weight: 2),
-          TweenSequenceItem(tween: Tween(begin: 12.0, end: 0.0), weight: 1),
+          TweenSequenceItem(tween: Tween(begin: 0.0, end: 10.0), weight: 1),
+          TweenSequenceItem(tween: Tween(begin: 10.0, end: -10.0), weight: 2),
+          TweenSequenceItem(tween: Tween(begin: -10.0, end: 10.0), weight: 2),
+          TweenSequenceItem(tween: Tween(begin: 10.0, end: 0.0), weight: 1),
         ]).animate(
           CurvedAnimation(parent: _shakeController, curve: Curves.easeInOut),
         );
@@ -71,62 +75,57 @@ class _InputScreenState extends State<InputScreen>
   void _onTextChanged() {
     setState(() {
       _charCount = _textController.text.length;
+      _selectedTemplate = null;
     });
+  }
+
+  void _showToast(String message) {
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => CupertinoAlertDialog(
+        content: Text(message, style: bodyStyle(color: textDark)),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleSnap() async {
     final text = _textController.text.trim();
     if (text.isEmpty) {
-      // Trigger haptic & shake animation on validation error
       HapticFeedback.vibrate();
       _shakeController.forward(from: 0.0);
       return;
     }
 
-    HapticFeedback.lightImpact();
+    HapticFeedback.mediumImpact();
     setState(() {
       _isParsing = true;
     });
 
-    // Start 500ms minimum display delay for the shimmer loading state
-    final Future parseTask = Future.delayed(
+    final parsedData = await Future.delayed(
       const Duration(milliseconds: 650),
-      () {
-        return TextParserService.parse(text);
-      },
+      () => TextParserService.parse(text),
     );
-
-    final parsedData = await parseTask;
 
     if (mounted) {
       if (parsedData.nodes.isEmpty) {
-        setState(() {
-          _isParsing = false;
-        });
-        // Show dialog/snackbar for no nodes
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Couldn't find structure — try adding more detail",
-              style: bodyStyle(color: Colors.white),
-            ),
-            backgroundColor: CupertinoColors.systemOrange,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        setState(() => _isParsing = false);
+        _showToast("Couldn't find structure — try adding more detail");
         return;
       }
 
-      // Save map to Hive storage via Provider
       final provider = Provider.of<MapProvider>(context, listen: false);
       await provider.saveMap(parsedData);
       provider.selectMap(parsedData);
 
       if (mounted) {
-        setState(() {
-          _isParsing = false;
-        });
-        // Navigate using CupertinoPageRoute
+        setState(() => _isParsing = false);
         Navigator.of(context).pushReplacement(
           CupertinoPageRoute(builder: (context) => const MindmapScreen()),
         );
@@ -136,200 +135,286 @@ class _InputScreenState extends State<InputScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (_isParsing) {
-      return const ShimmerLoader();
-    }
+    if (_isParsing) return const ShimmerLoader();
 
-    return AdaptiveScaffold(
-      appBar: const AdaptiveAppBar(title: 'New Snap'),
-      bottomNavigationBar: AdaptiveBottomNavigationBar(
-        selectedIndex: 1,
-        selectedItemColor: primary,
-        unselectedItemColor: textMid,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.of(context).pushAndRemoveUntil(
-              CupertinoPageRoute(builder: (context) => const HomeScreen()),
-              (route) => false,
-            );
-          } else if (index == 2) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Create a map first, then customize it from the canvas.',
-                  style: bodyStyle(color: Colors.white),
-                ),
-                backgroundColor: primary,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        },
-        items: const [
-          AdaptiveNavigationDestination(
-            icon: CupertinoIcons.square_grid_2x2,
-            selectedIcon: CupertinoIcons.square_grid_2x2_fill,
-            label: 'Home',
-          ),
-          AdaptiveNavigationDestination(
-            icon: CupertinoIcons.plus_circle,
-            selectedIcon: CupertinoIcons.plus_circle_fill,
-            label: 'New',
-          ),
-          AdaptiveNavigationDestination(
-            icon: CupertinoIcons.settings,
-            selectedIcon: CupertinoIcons.settings_solid,
-            label: 'Tools',
-          ),
-        ],
-      ),
-      body: Container(
-        color: bgLight,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Shaker widget surrounding the text card
-              AnimatedBuilder(
-                animation: _shakeAnimation,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(_shakeAnimation.value, 0),
-                    child: child,
-                  );
-                },
-                child: glassCard(
-                  opacity: 0.75,
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      CupertinoTextField(
-                        controller: _textController,
-                        placeholder:
-                            'Paste your notes, ideas, or brain dump here…',
-                        minLines: 8,
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.4),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        placeholderStyle: bodyStyle(
-                          fontSize: 14,
-                          color: textMid.withOpacity(0.7),
-                        ),
-                        style: bodyStyle(fontSize: 14, color: textDark),
+    return CupertinoPageScaffold(
+      backgroundColor: bgLight,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Custom Top Bar ──────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+              child: Row(
+                children: [
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Icon(CupertinoIcons.chevron_left, color: textDark, size: 22),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'New Snap',
+                    style: headingStyle(fontSize: 17, color: textDark, fontWeight: FontWeight.w600),
+                  ),
+                  const Spacer(),
+                  // Word count badge
+                  AnimatedOpacity(
+                    opacity: _charCount > 0 ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      const SizedBox(height: 8),
-                      // Character count
-                      Align(
-                        alignment: Alignment.bottomRight,
-                        child: Text(
-                          '$_charCount characters',
-                          style: bodyStyle(fontSize: 12, color: textMid),
+                      child: Text(
+                        '$_charCount',
+                        style: bodyStyle(fontSize: 12, color: primary, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Scrollable content ────────────────────────────
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+
+                    // ── Large heading ─────────────────────────
+                    Text(
+                      'What\'s on your mind?',
+                      style: headingStyle(
+                        fontSize: 28,
+                        color: textDark,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1, end: 0),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Paste text, notes or a brain dump — we\'ll structure it.',
+                      style: bodyStyle(fontSize: 13, color: textMid, height: 1.4),
+                    ).animate().fadeIn(delay: 80.ms, duration: 300.ms),
+                    const SizedBox(height: 20),
+
+                    // ── Text Input Area ───────────────────────
+                    AnimatedBuilder(
+                      animation: _shakeAnimation,
+                      builder: (context, child) => Transform.translate(
+                        offset: Offset(_shakeAnimation.value, 0),
+                        child: child,
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7F7F9),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _charCount > 0
+                                ? primary.withOpacity(0.25)
+                                : textDark.withOpacity(0.07),
+                            width: 1.5,
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            CupertinoTextField(
+                              controller: _textController,
+                              placeholder: 'Start typing or paste your text here…',
+                              minLines: 9,
+                              maxLines: null,
+                              keyboardType: TextInputType.multiline,
+                              keyboardAppearance: Brightness.light,
+                              decoration: const BoxDecoration(
+                                color: Colors.transparent,
+                              ),
+                              placeholderStyle: bodyStyle(
+                                fontSize: 15,
+                                color: textMid.withOpacity(0.7),
+                                height: 1.5,
+                              ),
+                              style: bodyStyle(
+                                fontSize: 15,
+                                color: textDark,
+                                height: 1.6,
+                              ),
+                            ),
+                            if (_charCount > 0) ...[
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: primary.withOpacity(0.6),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '$_charCount characters · ${(_charCount / 5).round()} words',
+                                    style: bodyStyle(fontSize: 11, color: textMid),
+                                  ),
+                                  const Spacer(),
+                                  GestureDetector(
+                                    onTap: () {
+                                      _textController.clear();
+                                      setState(() {
+                                        _selectedTemplate = null;
+                                      });
+                                    },
+                                    child: Text(
+                                      'Clear',
+                                      style: bodyStyle(
+                                        fontSize: 11,
+                                        color: const Color(0xFFFF3B30),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ).animate().fadeIn(delay: 120.ms, duration: 350.ms),
+                    const SizedBox(height: 28),
+
+                    // ── Templates ─────────────────────────────
+                    Row(
+                      children: [
+                        Text(
+                          'QUICK TEMPLATES',
+                          style: bodyStyle(
+                            fontSize: 11,
+                            color: textMid,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            height: 1,
+                            color: textDark.withOpacity(0.06),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Template grid 2x2
+                    GridView.count(
+                      shrinkWrap: true,
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 2.5,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: _templates.map((t) {
+                        final key = t['key']!;
+                        final isSelected = _selectedTemplate == key;
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            setState(() {
+                              _selectedTemplate = key;
+                            });
+                            _textController.text = _templateContents[key]!;
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? primary.withOpacity(0.08)
+                                  : const Color(0xFFF7F7F9),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isSelected
+                                    ? primary.withOpacity(0.4)
+                                    : textDark.withOpacity(0.07),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(t['emoji']!, style: const TextStyle(fontSize: 18)),
+                                const SizedBox(width: 8),
+                                Text(
+                                  t['label']!,
+                                  style: bodyStyle(
+                                    fontSize: 13,
+                                    color: isSelected ? primary : textDark.withOpacity(0.75),
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ).animate().fadeIn(delay: 200.ms, duration: 350.ms),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── Sticky Snap It Button ─────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: GestureDetector(
+                onTap: _handleSnap,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: _charCount > 0 ? primary : textDark.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: _charCount > 0
+                        ? [
+                            BoxShadow(
+                              color: primary.withOpacity(0.3),
+                              blurRadius: 18,
+                              offset: const Offset(0, 6),
+                            ),
+                          ]
+                        : [],
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        CupertinoIcons.sparkles,
+                        color: _charCount > 0 ? Colors.white : textMid,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Snap It',
+                        style: headingStyle(
+                          fontSize: 17,
+                          color: _charCount > 0 ? Colors.white : textMid,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-
-              // Chips for templates
-              Text(
-                'QUICK TEMPLATES',
-                style: headingStyle(
-                  fontSize: 12,
-                  color: textMid,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _templates.keys.map((title) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: GestureDetector(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          _textController.text = _templates[title]!;
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(nodeRadius),
-                            border: Border.all(
-                              color: primary.withOpacity(0.15),
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x06000000),
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            title,
-                            style: bodyStyle(
-                              fontSize: 13,
-                              color: primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Snap It button
-              CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    onPressed: _handleSnap,
-                    child: Container(
-                      width: double.infinity,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [primary, accent],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primary.withOpacity(0.3),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Snap It ✨',
-                        style: headingStyle(fontSize: 16, color: Colors.white),
-                      ),
-                    ),
-                  )
-                  .animate(target: _charCount > 0 ? 1.0 : 0.0)
-                  .scale(
-                    begin: const Offset(0.96, 0.96),
-                    duration: 100.ms,
-                    curve: Curves.easeOutBack,
-                  ),
-            ],
-          ),
+              ).animate().slideY(begin: 0.3, end: 0, delay: 100.ms, duration: 400.ms, curve: Curves.easeOutBack),
+            ),
+          ],
         ),
       ),
     );

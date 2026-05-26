@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/map_provider.dart';
 import '../themes/app_theme.dart';
@@ -24,13 +25,13 @@ class CustomizationPanel extends StatelessWidget {
             filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: surface.withOpacity(0.85),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(28),
                   topRight: Radius.circular(28),
                 ),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.4),
+                  color: textDark.withOpacity(0.08),
                   width: 1.5,
                 ),
               ),
@@ -124,10 +125,10 @@ class CustomizationPanel extends StatelessWidget {
                               },
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: isSelected ? Colors.white.withOpacity(0.5) : Colors.white.withOpacity(0.15),
+                                  color: isSelected ? textDark.withOpacity(0.1) : textDark.withOpacity(0.03),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: isSelected ? primary : Colors.white.withOpacity(0.3),
+                                    color: isSelected ? primary : textDark.withOpacity(0.08),
                                     width: 1.5,
                                   ),
                                 ),
@@ -251,13 +252,7 @@ class CustomizationPanel extends StatelessWidget {
                         borderRadius: BorderRadius.circular(buttonRadius),
                         onPressed: () {
                           provider.resetNodePositions();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Reset all nodes to default positions!', style: bodyStyle(color: Colors.white)),
-                              backgroundColor: primary,
-                              duration: const Duration(seconds: 1),
-                            ),
-                          );
+                          HapticFeedback.heavyImpact();
                         },
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,

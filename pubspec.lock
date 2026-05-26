@@ -9,14 +9,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "67.0.0"
-  adaptive_platform_ui:
-    dependency: "direct main"
-    description:
-      name: adaptive_platform_ui
-      sha256: "72ebe76218ea43b6bef370f1daaf6f80f4abe75f4a7b75e10f1392c13a9f1ce4"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.107"
   analyzer:
     dependency: transitive
     description:
@@ -41,6 +33,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.1"
+  blur:
+    dependency: "direct main"
+    description:
+      name: blur
+      sha256: "1318cf79c735784eda8dffc77b1085b757373d233c1c8d94dc0cfd81530a3574"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.2"
   boolean_selector:
     dependency: transitive
     description:
@@ -193,6 +193,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.6"
+  equatable:
+    dependency: transitive
+    description:
+      name: equatable
+      sha256: "3e0141505477fd8ad55d6eb4e7776d3fe8430be8e497ccb1521370c3f21a3e2b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.8"
   fake_async:
     dependency: transitive
     description:
@@ -267,6 +275,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"
+  glassmorphism_ui:
+    dependency: "direct main"
+    description:
+      name: glassmorphism_ui
+      sha256: "4a28b45fedb74c2b30e25495980394e3cf5b3634c74ec1ebedaef4d4c295f46f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.0"
   glob:
     dependency: transitive
     description:
@@ -419,6 +435,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.0"
+  liquid_glass_widgets:
+    dependency: "direct main"
+    description:
+      name: liquid_glass_widgets
+      sha256: "017562b30f5e5458ff93404fd5612688371fbf86ef00b3f185c19cd07a77277f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.12.8"
   logging:
     dependency: transitive
     description:

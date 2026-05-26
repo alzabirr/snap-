@@ -12,6 +12,7 @@ import '../themes/app_theme.dart';
 import '../utils/export_helper.dart';
 import '../widgets/customization_panel.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/ambient_background.dart';
 import '../widgets/mind_map_painter.dart';
 import '../widgets/node_widget.dart';
 
@@ -273,12 +274,12 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: surface.withOpacity(0.85),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(24),
                   topRight: Radius.circular(24),
                 ),
-                border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.2),
+                border: Border.all(color: textDark.withOpacity(0.08), width: 1.2),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -313,7 +314,7 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
                   
                   // Save to Gallery
                   CupertinoButton(
-                    color: Colors.white.withOpacity(0.4),
+                    color: textDark.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(buttonRadius),
                     onPressed: () async {
                       Navigator.pop(context);
@@ -368,11 +369,17 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
   }
 
   void _showToast(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: bodyStyle(color: Colors.white)),
-        backgroundColor: primary,
-        duration: const Duration(seconds: 4),
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => CupertinoAlertDialog(
+        content: Text(message, style: bodyStyle(color: textDark)),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+        ],
       ),
     );
   }
@@ -408,33 +415,34 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          // Mind Map Zoomable Canvas
-          InteractiveViewer(
-            transformationController: _transformationController,
-            minScale: 0.3,
-            maxScale: 4.0,
-            constrained: false,
-            panEnabled: !_isDragging,
-            boundaryMargin: const EdgeInsets.all(double.infinity),
-            child: GestureDetector(
-              onTapDown: _handleTapDown,
-              onTap: _handleTap,
-              onDoubleTap: _handleDoubleTap,
-              onLongPressStart: _handleLongPressStart,
-              onLongPressMoveUpdate: _handleLongPressMoveUpdate,
-              onLongPressEnd: _handleLongPressEnd,
-              child: AnimatedBuilder(
-                animation: _floatController,
-                builder: (context, child) {
-                  return RepaintBoundary(
-                    key: _boundaryKey,
-                    child: Container(
-                      width: 3000,
-                      height: 3000,
-                      color: bgLight,
-                      child: CustomPaint(
+      body: AmbientBackground(
+        child: Stack(
+          children: [
+            // Mind Map Zoomable Canvas
+            InteractiveViewer(
+              transformationController: _transformationController,
+              minScale: 0.3,
+              maxScale: 4.0,
+              constrained: false,
+              panEnabled: !_isDragging,
+              boundaryMargin: const EdgeInsets.all(double.infinity),
+              child: GestureDetector(
+                onTapDown: _handleTapDown,
+                onTap: _handleTap,
+                onDoubleTap: _handleDoubleTap,
+                onLongPressStart: _handleLongPressStart,
+                onLongPressMoveUpdate: _handleLongPressMoveUpdate,
+                onLongPressEnd: _handleLongPressEnd,
+                child: AnimatedBuilder(
+                  animation: _floatController,
+                  builder: (context, child) {
+                    return RepaintBoundary(
+                      key: _boundaryKey,
+                      child: Container(
+                        width: 3000,
+                        height: 3000,
+                        color: Colors.transparent,
+                        child: CustomPaint(
                         painter: MindMapPainter(
                           data: data,
                           settings: provider.settings,
@@ -496,7 +504,7 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
             ),
           ).animate().slideY(begin: 0.8, end: 0, curve: Curves.easeOutBack, duration: 500.ms),
         ],
-      ),
+      )),
     );
   }
 
@@ -504,7 +512,7 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
     return Container(
       width: 1.2,
       height: 24,
-      color: Colors.white.withOpacity(0.3),
+      color: textDark.withOpacity(0.15),
       margin: const EdgeInsets.symmetric(horizontal: 12),
     );
   }

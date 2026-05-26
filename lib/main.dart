@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/map_provider.dart';
 import 'screens/home_screen.dart';
@@ -36,9 +35,13 @@ class SnapApp extends StatelessWidget {
       title: 'Snap',
       debugShowCheckedModeBanner: false,
       theme: const CupertinoThemeData(
-        primaryColor: Color(0xFF4F46E5),
-        barBackgroundColor: CupertinoColors.systemBackground,
-        scaffoldBackgroundColor: CupertinoColors.systemBackground,
+        brightness: Brightness.light,
+        primaryColor: Color(0xFF5E5CE6),
+        barBackgroundColor: Color(0xCCFFFFFF),
+        scaffoldBackgroundColor: Color(0xFFFFFFFF),
+        textTheme: CupertinoTextThemeData(
+          primaryColor: Color(0xFF5E5CE6),
+        ),
       ),
       home: isFirstLaunch ? const OnboardingScreen() : const HomeScreen(),
     );
