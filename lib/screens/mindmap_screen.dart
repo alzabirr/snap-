@@ -5,16 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/rendering.dart';
 import '../models/snap_map_model.dart';
 import '../providers/map_provider.dart';
 import '../themes/app_theme.dart';
-import '../utils/export_helper.dart';
-import '../widgets/customization_panel.dart';
 import '../widgets/glass_card.dart';
-import '../widgets/ambient_background.dart';
 import '../widgets/mind_map_painter.dart';
 import '../widgets/node_widget.dart';
+import 'flashcards_screen.dart';
 
 class MindmapScreen extends StatefulWidget {
   const MindmapScreen({super.key});
@@ -23,14 +20,15 @@ class MindmapScreen extends StatefulWidget {
   State<MindmapScreen> createState() => _MindmapScreenState();
 }
 
-class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProviderStateMixin {
+class _MindmapScreenState extends State<MindmapScreen> with TickerProviderStateMixin {
   late AnimationController _floatController;
-  final GlobalKey _boundaryKey = GlobalKey();
+  late AnimationController _revealController;
   final TransformationController _transformationController = TransformationController();
   
   Offset _lastTapDownPosition = Offset.zero;
   bool _isDragging = false;
   MindMapNode? _draggingNode;
+  String? _revealingBranchId;
 
   @override
   void initState() {
@@ -40,9 +38,14 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
       duration: const Duration(seconds: 3),
       vsync: this,
     )..repeat();
+    _revealController = AnimationController(
+      duration: const Duration(milliseconds: 360),
+      vsync: this,
+    );
 
     // Center the viewport initially on the 3000x3000px canvas
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _collapseBranchesForFocusedView();
       _centerViewport();
     });
   }
@@ -50,23 +53,66 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
   @override
   void dispose() {
     _floatController.dispose();
+    _revealController.dispose();
     _transformationController.dispose();
     super.dispose();
   }
 
+  void _collapseBranchesForFocusedView() {
+    final provider = Provider.of<MapProvider>(context, listen: false);
+    final data = provider.selectedMap;
+    if (data == null) return;
+    setState(() {
+      for (final branch in data.nodes) {
+        branch.isExpanded = false;
+      }
+    });
+  }
+
   void _centerViewport() {
-    // Center of 3000x3000px canvas is (1500, 1500)
-    // Screen size is usually around (400, 800)
-    // We want the center of the screen to align with the center of the canvas.
+    final provider = Provider.of<MapProvider>(context, listen: false);
+    final data = provider.selectedMap;
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
-    
-    final double xOffset = -(1500 - screenWidth / 2);
-    final double yOffset = -(1500 - screenHeight / 2);
-    
-    // Set scale to 1.0 or slightly zoomed out
+
+    var contentCenter = const Offset(1500, 1500);
+    var scale = 0.78;
+
+    if (data != null) {
+      final positions = MindMapLayoutHelper.getPositions(
+        data,
+        provider.settings,
+        floatOffset: 0,
+      );
+      if (positions.isNotEmpty) {
+        var left = double.infinity;
+        var top = double.infinity;
+        var right = -double.infinity;
+        var bottom = -double.infinity;
+
+        for (final point in positions.values) {
+          left = min(left, point.dx);
+          top = min(top, point.dy);
+          right = max(right, point.dx);
+          bottom = max(bottom, point.dy);
+        }
+
+        final width = (right - left).clamp(1, double.infinity).toDouble();
+        final height = (bottom - top).clamp(1, double.infinity).toDouble();
+        contentCenter = Offset((left + right) / 2, (top + bottom) / 2);
+        scale = min(
+          screenWidth / (width + 260),
+          screenHeight / (height + 280),
+        ).clamp(0.32, 0.9).toDouble();
+      }
+    }
+
+    final double xOffset = screenWidth / 2 - contentCenter.dx * scale;
+    final double yOffset = screenHeight / 2 - contentCenter.dy * scale;
+
     _transformationController.value = Matrix4.identity()
-      ..translate(xOffset, yOffset);
+      ..translate(xOffset, yOffset)
+      ..scale(scale);
   }
 
   void _handleTapDown(TapDownDetails details) {
@@ -83,6 +129,15 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
       if (hitResult.isRoot) {
         // Double check/edit root title if clicked?
         _showEditRootTitleDialog(context, provider, data);
+      } else if (hitResult.node != null && hitResult.isBranch) {
+        HapticFeedback.lightImpact();
+        setState(() {
+          _revealingBranchId = hitResult.node!.id;
+        });
+        provider.toggleNodeExpansion(hitResult.node!);
+        if (hitResult.node!.isExpanded) {
+          _revealController.forward(from: 0);
+        }
       } else if (hitResult.node != null) {
         // Show edit/delete dialog
         showCupertinoDialog(
@@ -249,21 +304,14 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
     );
   }
 
-  void _showCustomizationSheet() {
+  void _showLayoutSheet() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      isScrollControlled: true,
       barrierColor: Colors.black.withOpacity(0.15),
-      builder: (context) => const CustomizationPanel(),
-    );
-  }
-
-  void _showExportSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
       builder: (context) {
+        final provider = Provider.of<MapProvider>(context, listen: false);
+        final settings = provider.settings;
         return ClipRRect(
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
@@ -285,42 +333,47 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Export Canvas', style: headingStyle(fontSize: 18, color: textDark), textAlign: TextAlign.center),
-                  const SizedBox(height: 24),
-                  
-                  // Save PNG
+                  Text('Layout', style: headingStyle(fontSize: 18, color: textDark), textAlign: TextAlign.center),
+                  const SizedBox(height: 18),
+                  CupertinoSlidingSegmentedControl<String>(
+                    groupValue: settings.layout,
+                    children: {
+                      'radial': Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text('Radial', style: bodyStyle(fontSize: 13, color: textDark)),
+                      ),
+                      'tree': Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text('Tree', style: bodyStyle(fontSize: 13, color: textDark)),
+                      ),
+                      'horizontal': Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text('Horiz', style: bodyStyle(fontSize: 13, color: textDark)),
+                      ),
+                      'vertical': Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text('Vert', style: bodyStyle(fontSize: 13, color: textDark)),
+                      ),
+                    },
+                    onValueChanged: (val) {
+                      if (val != null) {
+                        provider.updateSetting(layout: val);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) _centerViewport();
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 14),
                   CupertinoButton(
                     color: primary,
                     borderRadius: BorderRadius.circular(buttonRadius),
-                    onPressed: () async {
+                    onPressed: () {
+                      provider.resetNodePositions();
+                      _centerViewport();
                       Navigator.pop(context);
-                      _triggerCapture(action: 'save');
                     },
-                    child: Text('Save PNG to Documents', style: headingStyle(fontSize: 14, color: Colors.white)),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Share
-                  CupertinoButton(
-                    color: accent,
-                    borderRadius: BorderRadius.circular(buttonRadius),
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      _triggerCapture(action: 'share');
-                    },
-                    child: Text('Share mind map', style: headingStyle(fontSize: 14, color: Colors.white)),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // Save to Gallery
-                  CupertinoButton(
-                    color: textDark.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(buttonRadius),
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      _triggerCapture(action: 'gallery');
-                    },
-                    child: Text('Save to Gallery', style: headingStyle(fontSize: 14, color: textDark)),
+                    child: Text('Apply Layout', style: headingStyle(fontSize: 14, color: Colors.white)),
                   ),
                 ],
               ),
@@ -329,43 +382,6 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
         );
       },
     );
-  }
-
-  void _triggerCapture({required String action}) async {
-    // Show hud
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => const Center(child: CupertinoActivityIndicator(radius: 16)),
-    );
-
-    try {
-      final RenderRepaintBoundary? boundary =
-          _boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) {
-        throw Exception('RepaintBoundary render object not found');
-      }
-      final imagePath = await ExportHelper.capturePng(boundary);
-      
-      // pop hud
-      if (mounted) Navigator.pop(context);
-
-      if (action == 'share') {
-        await ExportHelper.shareImage(imagePath);
-      } else if (action == 'save') {
-        final path = await ExportHelper.saveToGallery(imagePath);
-        if (mounted) {
-          _showToast('Map saved to Documents:\n$path');
-        }
-      } else if (action == 'gallery') {
-        await ExportHelper.saveToGallery(imagePath);
-        if (mounted) {
-          _showToast('Saved to device gallery successfully!');
-        }
-      }
-    } catch (e) {
-      if (mounted) Navigator.pop(context);
-      _showToast('Export failed — try again');
-    }
   }
 
   void _showToast(String message) {
@@ -384,6 +400,86 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
     );
   }
 
+  void _showSummary(SnapMapData data) {
+    final summaryNode = data.nodes.where((node) => node.title.toLowerCase().contains('summary')).toList();
+    final points = summaryNode.isNotEmpty
+        ? summaryNode.first.children.map((child) => child.title).toList()
+        : data.nodes.expand((node) => node.children).take(5).map((child) => child.title).toList();
+    _showInfoSheet('Summary', points.isEmpty ? ['No summary available.'] : points);
+  }
+
+  void _showQuestions(SnapMapData data) {
+    final questionNode = data.nodes.where((node) => node.title.toLowerCase().contains('question')).toList();
+    final points = questionNode.isNotEmpty
+        ? questionNode.first.children.map((child) => child.title).toList()
+        : data.nodes.expand((node) => node.children).take(5).map((child) => 'What should you remember about ${child.title}?').toList();
+    _showInfoSheet('Questions', points.isEmpty ? ['No questions available.'] : points);
+  }
+
+  void _openFlashcards(SnapMapData data) {
+    Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (context) => FlashcardsScreen(initialMapId: data.id),
+      ),
+    );
+  }
+
+  void _showInfoSheet(String title, List<String> points) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 28),
+            decoration: BoxDecoration(
+              color: surface.withOpacity(0.88),
+              border: Border.all(color: textDark.withOpacity(0.08), width: 1.2),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(title, style: headingStyle(fontSize: 18, color: textDark), textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ...points.map(
+                  (point) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          margin: const EdgeInsets.only(top: 8, right: 10),
+                          decoration: const BoxDecoration(
+                            color: primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            point,
+                            style: bodyStyle(fontSize: 14, color: textDark, height: 1.35),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<MapProvider>(context);
@@ -393,52 +489,29 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
     }
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
-          child: const Icon(CupertinoIcons.back, color: textDark, size: 24),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          data.title,
-          style: headingStyle(fontSize: 20, color: textDark),
-          overflow: TextOverflow.ellipsis,
-        ),
-        actions: [
-          CupertinoButton(
-            padding: const EdgeInsets.only(right: 16),
-            child: const Icon(CupertinoIcons.share, color: textDark, size: 22),
-            onPressed: _showExportSheet,
-          ),
-        ],
-      ),
-      body: AmbientBackground(
+      backgroundColor: Colors.white,
+      body: SafeArea(
         child: Stack(
           children: [
             // Mind Map Zoomable Canvas
             InteractiveViewer(
               transformationController: _transformationController,
-              minScale: 0.3,
-              maxScale: 4.0,
+              minScale: 0.05,
+              maxScale: 80.0,
+              scaleEnabled: true,
               constrained: false,
               panEnabled: !_isDragging,
               boundaryMargin: const EdgeInsets.all(double.infinity),
               child: GestureDetector(
                 onTapDown: _handleTapDown,
                 onTap: _handleTap,
-                onDoubleTap: _handleDoubleTap,
                 onLongPressStart: _handleLongPressStart,
                 onLongPressMoveUpdate: _handleLongPressMoveUpdate,
                 onLongPressEnd: _handleLongPressEnd,
                 child: AnimatedBuilder(
-                  animation: _floatController,
+                  animation: Listenable.merge([_floatController, _revealController]),
                   builder: (context, child) {
-                    return RepaintBoundary(
-                      key: _boundaryKey,
-                      child: Container(
+                    return Container(
                         width: 3000,
                         height: 3000,
                         color: Colors.transparent,
@@ -447,11 +520,41 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
                           data: data,
                           settings: provider.settings,
                           floatOffset: _floatController.value * 2 * pi,
+                          revealBranchId: _revealingBranchId,
+                          revealProgress: Curves.easeOutCubic.transform(_revealController.value),
                         ),
                       ),
-                    ),
-                  );
+                    );
                 },
+              ),
+            ),
+          ),
+          Positioned(
+            top: 10,
+            left: 12,
+            child: CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () => Navigator.pop(context),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: textDark.withValues(alpha: 0.08)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 16,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  CupertinoIcons.chevron_left,
+                  color: textDark,
+                  size: 22,
+                ),
               ),
             ),
           ),
@@ -470,32 +573,28 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Themes
-                      _buildDockButton(
-                        icon: CupertinoIcons.color_filter,
-                        label: 'Themes',
-                        onTap: _showCustomizationSheet,
-                      ),
-                      _buildDivider(),
-                      // Layout
                       _buildDockButton(
                         icon: CupertinoIcons.square_grid_2x2,
                         label: 'Layout',
-                        onTap: _showCustomizationSheet,
+                        onTap: _showLayoutSheet,
                       ),
                       _buildDivider(),
-                      // Options
                       _buildDockButton(
-                        icon: CupertinoIcons.settings,
-                        label: 'Options',
-                        onTap: _showCustomizationSheet,
+                        icon: CupertinoIcons.doc_text,
+                        label: 'Summary',
+                        onTap: () => _showSummary(data),
                       ),
                       _buildDivider(),
-                      // Export
                       _buildDockButton(
-                        icon: CupertinoIcons.square_arrow_up,
-                        label: 'Export',
-                        onTap: _showExportSheet,
+                        icon: CupertinoIcons.question_circle,
+                        label: 'Questions',
+                        onTap: () => _showQuestions(data),
+                      ),
+                      _buildDivider(),
+                      _buildDockButton(
+                        icon: CupertinoIcons.rectangle_stack,
+                        label: 'Flashcards',
+                        onTap: () => _openFlashcards(data),
                       ),
                     ],
                   ),
@@ -504,7 +603,8 @@ class _MindmapScreenState extends State<MindmapScreen> with SingleTickerProvider
             ),
           ).animate().slideY(begin: 0.8, end: 0, curve: Curves.easeOutBack, duration: 500.ms),
         ],
-      )),
+      ),
+      ),
     );
   }
 

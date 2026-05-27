@@ -1,8 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import '../providers/map_provider.dart';
+import '../services/local_model_service.dart';
 import '../storage/hive_storage.dart';
 import '../themes/app_theme.dart';
 import '../widgets/ambient_background.dart';
@@ -21,6 +19,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late bool _notificationsEnabled;
   late bool _cloudSyncEnabled;
   late bool _hapticFeedbackEnabled;
+  bool _hasModel = false;
 
   @override
   void initState() {
@@ -33,6 +32,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _cloudSyncEnabled = _storage.getSetting('cloudSyncEnabled', false) as bool;
     _hapticFeedbackEnabled =
         _storage.getSetting('hapticFeedbackEnabled', true) as bool;
+    LocalModelService.downloadProgress.addListener(_handleModelProgress);
+    LocalModelService.isDownloading.addListener(_handleModelProgress);
+    _loadModelState();
+  }
+
+  @override
+  void dispose() {
+    LocalModelService.downloadProgress.removeListener(_handleModelProgress);
+    LocalModelService.isDownloading.removeListener(_handleModelProgress);
+    super.dispose();
+  }
+
+  void _handleModelProgress() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadModelState() async {
+    final hasModel = await LocalModelService.hasDownloadedModel();
+    if (!mounted) return;
+    setState(() => _hasModel = hasModel);
+  }
+
+  Future<void> _downloadModel() async {
+    try {
+      await LocalModelService.ensureDefaultModelDownloaded();
+      await _loadModelState();
+    } catch (_) {
+      if (!mounted) return;
+      _showInfoDialog(
+        title: 'Download failed',
+        message: 'Could not download the local model. Check internet and try again.',
+      );
+    }
   }
 
   Future<void> _saveBool(String key, bool value) async {
@@ -159,14 +191,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFFF5F6FA),
       body: AmbientBackground(
         child: SafeArea(
-          child: Consumer<MapProvider>(
-            builder: (context, provider, _) {
-              final settings = provider.settings;
-
-              return ListView(
+          child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
                 physics: const BouncingScrollPhysics(),
                 children: [
@@ -209,6 +237,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     name: _profileName,
                     workspaceName: _workspaceName,
                     onTap: _showEditProfileDialog,
+                  ),
+                  const SizedBox(height: 18),
+                  _ModelStatusCard(
+                    hasModel: _hasModel,
+                    isDownloading: LocalModelService.isDownloading.value,
+                    progress: LocalModelService.downloadProgress.value,
+                    onDownload: _downloadModel,
                   ),
                   const SizedBox(height: 18),
                   _SettingsGroup(
@@ -259,67 +294,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  _SettingsGroup(
-                    title: 'Mind map',
-                    children: [
-                      _LayoutSelector(
-                        value: settings.layout,
-                        onChanged: (value) =>
-                            provider.updateSetting(layout: value),
-                      ),
-                      _Divider(),
-                      _SliderSetting(
-                        title: 'Text size',
-                        value: settings.textSize,
-                        min: 10,
-                        max: 22,
-                        label: '${settings.textSize.round()} px',
-                        onChanged: (value) =>
-                            provider.updateSetting(textSize: value),
-                      ),
-                      _Divider(),
-                      _SliderSetting(
-                        title: 'Branch width',
-                        value: settings.branchThickness,
-                        min: 1,
-                        max: 6,
-                        label: settings.branchThickness.toStringAsFixed(1),
-                        onChanged: (value) =>
-                            provider.updateSetting(branchThickness: value),
-                      ),
-                      _Divider(),
-                      _SwitchSetting(
-                        title: 'Compact layout',
-                        value: settings.isCompact,
-                        onChanged: (value) =>
-                            provider.updateSetting(isCompact: value),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  _SettingsGroup(
-                    title: 'Theme',
-                    children: [
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: themePalettes.entries.map((entry) {
-                          final selected = settings.themeName == entry.key;
-                          return _ThemeChip(
-                            name: entry.key,
-                            colors: entry.value,
-                            selected: selected,
-                            onTap: () =>
-                                provider.updateSetting(themeName: entry.key),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
                 ],
-              );
-            },
           ),
         ),
       ),
@@ -404,6 +379,123 @@ class _ProfileHeader extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ModelStatusCard extends StatelessWidget {
+  final bool hasModel;
+  final bool isDownloading;
+  final double progress;
+  final VoidCallback onDownload;
+
+  const _ModelStatusCard({
+    required this.hasModel,
+    required this.isDownloading,
+    required this.progress,
+    required this.onDownload,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final percent = (progress.clamp(0, 1) * 100).toStringAsFixed(0);
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: surface.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: textDark.withValues(alpha: 0.08)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 22,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: hasModel
+                      ? const Color(0xFF34D399).withValues(alpha: 0.16)
+                      : primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(
+                  hasModel
+                      ? CupertinoIcons.checkmark_seal_fill
+                      : CupertinoIcons.cloud_download,
+                  color: hasModel ? const Color(0xFF059669) : primary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasModel ? 'Local AI ready' : 'Local AI model',
+                      style: headingStyle(
+                        fontSize: 20,
+                        color: textDark,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      hasModel
+                          ? 'Chat, New Snap and mind map AI are enabled.'
+                          : isDownloading
+                              ? 'Downloading Gemma model... $percent%'
+                              : 'Starts automatically after app install.',
+                      style: bodyStyle(
+                        fontSize: 13,
+                        color: textMid,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (isDownloading) ...[
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                minHeight: 7,
+                value: progress == 0 ? null : progress.clamp(0, 1),
+                backgroundColor: primary.withValues(alpha: 0.12),
+                valueColor: const AlwaysStoppedAnimation<Color>(primary),
+              ),
+            ),
+          ],
+          if (!hasModel && !isDownloading) ...[
+            const SizedBox(height: 16),
+            CupertinoButton(
+              color: primary,
+              borderRadius: BorderRadius.circular(18),
+              onPressed: onDownload,
+              child: Text(
+                'Download Now',
+                style: bodyStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

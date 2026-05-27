@@ -112,40 +112,23 @@ class MindMapPainter extends CustomPainter {
   final SnapMapData data;
   final SnapMapSettings settings;
   final double floatOffset;
+  final String? revealBranchId;
+  final double revealProgress;
 
   MindMapPainter({
     required this.data,
     required this.settings,
     required this.floatOffset,
+    this.revealBranchId,
+    this.revealProgress = 1,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Background Grid / Subtle Gradient
-    final bgPaint = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          bgLight,
-          bgLight.withOpacity(0.95),
-          const Color(0xFFEEF2FF),
-        ],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
-
-    // Draw a subtle grid pattern
-    final gridPaint = Paint()
-      ..color = const Color(0xFFE2E8F0).withOpacity(0.3)
-      ..strokeWidth = 1.0;
-    
-    const double step = 60.0;
-    for (double i = 0; i < size.width; i += step) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), gridPaint);
-    }
-    for (double j = 0; j < size.height; j += step) {
-      canvas.drawLine(Offset(0, j), Offset(size.width, j), gridPaint);
-    }
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..color = Colors.white,
+    );
 
     // Get calculated positions
     final positions = MindMapLayoutHelper.getPositions(data, settings, floatOffset: floatOffset);
@@ -158,6 +141,7 @@ class MindMapPainter extends CustomPainter {
     const double branchHeight = 46.0;
     const double childWidth = 110.0;
     const double childHeight = 36.0;
+    const Color mapNodeColor = primary;
 
     // 2. Render Bezier Connector Lines
     for (int i = 0; i < data.nodes.length; i++) {
@@ -166,27 +150,30 @@ class MindMapPainter extends CustomPainter {
       if (branchPos == null) continue;
 
       // Draw connection from Root to Branch
-      _drawBezierConnection(canvas, rootPos, branchPos, branch.color, settings.branchThickness);
+      _drawBezierConnection(canvas, rootPos, branchPos, mapNodeColor, settings.branchThickness);
 
       // Draw connection from Branch to Children
       if (branch.isExpanded) {
         for (var child in branch.children) {
           final childPos = positions[child.id];
           if (childPos == null) continue;
+          final progress = branch.id == revealBranchId ? revealProgress : 1.0;
+          if (progress <= 0) continue;
           // Connect child to branch
-          _drawBezierConnection(canvas, branchPos, childPos, branch.color.withOpacity(0.7), settings.branchThickness * 0.8);
+          _drawBezierConnection(
+            canvas,
+            branchPos,
+            Offset.lerp(branchPos, childPos, progress)!,
+            mapNodeColor.withOpacity(0.9 * progress),
+            settings.branchThickness * 0.8,
+          );
         }
       }
     }
 
     // 3. Render Root Node
     final rootRect = Rect.fromCircle(center: rootPos, radius: rootRadius);
-    final rootPaint = Paint()
-      ..shader = const LinearGradient(
-        colors: [primary, accent],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ).createShader(rootRect);
+    final rootPaint = Paint()..color = mapNodeColor;
 
     // Draw shadow
     canvas.drawCircle(rootPos + const Offset(0, 4), rootRadius, Paint()..color = const Color(0x1A000000)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
@@ -210,7 +197,7 @@ class MindMapPainter extends CustomPainter {
       // Draw branch node shape
       final branchRect = Rect.fromCenter(center: branchPos, width: branchWidth, height: branchHeight);
       final branchRRect = RRect.fromRectAndRadius(branchRect, const Radius.circular(12));
-      final branchPaint = Paint()..color = branch.color;
+      final branchPaint = Paint()..color = mapNodeColor;
 
       // Draw shadow
       canvas.drawRRect(
@@ -230,18 +217,23 @@ class MindMapPainter extends CustomPainter {
 
       // Draw branch collapse/expand indicator dot if it has children
       if (branch.children.isNotEmpty) {
-        final indicatorColor = Colors.white;
-        final indicatorPos = branchPos + Offset(0, branchHeight / 2);
-        canvas.drawCircle(indicatorPos, 6, Paint()..color = branch.color);
-        canvas.drawCircle(indicatorPos, 4, Paint()..color = indicatorColor);
-        if (!branch.isExpanded) {
-          // Draw small "+" inside
-          final plusPaint = Paint()
-            ..color = branch.color
-            ..strokeWidth = 1.5;
-          canvas.drawLine(indicatorPos - const Offset(2, 0), indicatorPos + const Offset(2, 0), plusPaint);
-          canvas.drawLine(indicatorPos - const Offset(0, 2), indicatorPos + const Offset(0, 2), plusPaint);
-        }
+        final indicatorPos = branchPos + Offset(branchWidth / 2 + 18, 0);
+        canvas.drawCircle(
+          indicatorPos,
+          11,
+          Paint()..color = mapNodeColor.withOpacity(0.88),
+        );
+        _drawNodeText(
+          canvas,
+          indicatorPos,
+          branch.isExpanded ? '<' : '>',
+          headingStyle(
+            fontSize: 14,
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+          ),
+          18,
+        );
       }
 
       // Draw child nodes
@@ -249,34 +241,45 @@ class MindMapPainter extends CustomPainter {
         for (var child in branch.children) {
           final childPos = positions[child.id];
           if (childPos == null) continue;
+          final progress = branch.id == revealBranchId ? revealProgress : 1.0;
+          if (progress <= 0) continue;
+          final animatedPos = Offset.lerp(branchPos, childPos, progress)!;
 
-          final childRect = Rect.fromCenter(center: childPos, width: childWidth, height: childHeight);
+          canvas.save();
+          canvas.translate(animatedPos.dx, animatedPos.dy);
+          canvas.scale(0.86 + (0.14 * progress));
+          canvas.translate(-animatedPos.dx, -animatedPos.dy);
+
+          final childRect = Rect.fromCenter(center: animatedPos, width: childWidth, height: childHeight);
           final childRRect = RRect.fromRectAndRadius(childRect, const Radius.circular(18)); // pill shape
           
           // solid/opaque fill depending on theme readability
           final isDarkPalette = settings.themeName == 'Mono' || settings.themeName == 'Candy';
           final childPaint = Paint()
-            ..color = child.color.withOpacity(0.7);
+            ..color = mapNodeColor.withOpacity(progress);
 
           // Draw shadow
           canvas.drawRRect(
             childRRect.shift(const Offset(0, 2)),
-            Paint()..color = const Color(0x14000000)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+            Paint()
+              ..color = Color.fromRGBO(0, 0, 0, 0.08 * progress)
+              ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
           );
           canvas.drawRRect(childRRect, childPaint);
 
           // Child Label
           _drawNodeText(
             canvas,
-            childPos,
+            animatedPos,
             child.title,
             bodyStyle(
               fontSize: settings.textSize - 2,
-              color: isDarkPalette ? textDark : Colors.white,
+              color: (isDarkPalette ? textDark : Colors.white).withOpacity(progress.clamp(0.35, 1)),
               fontWeight: FontWeight.w500,
             ),
             childWidth - 16,
           );
+          canvas.restore();
         }
       }
     }
@@ -336,6 +339,8 @@ class MindMapPainter extends CustomPainter {
   bool shouldRepaint(covariant MindMapPainter oldDelegate) {
     return oldDelegate.data != data ||
         oldDelegate.settings != settings ||
-        oldDelegate.floatOffset != floatOffset;
+        oldDelegate.floatOffset != floatOffset ||
+        oldDelegate.revealBranchId != revealBranchId ||
+        oldDelegate.revealProgress != revealProgress;
   }
 }

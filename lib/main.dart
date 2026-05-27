@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'providers/map_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'services/local_model_service.dart';
 import 'storage/hive_storage.dart';
 
 void main() async {
@@ -30,6 +33,7 @@ void main() async {
 
   final storage = HiveStorage();
   final isFirst = await storage.isFirstLaunch();
+  unawaited(LocalModelService.ensureDefaultModelDownloaded());
 
   runApp(
     MultiProvider(

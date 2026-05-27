@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import '../providers/map_provider.dart';
 import '../themes/app_theme.dart';
 import '../widgets/ambient_background.dart';
+import 'chat_ai_screen.dart';
+import 'flashcards_screen.dart';
 import 'input_screen.dart';
 import 'mindmap_screen.dart';
 import 'settings_screen.dart';
@@ -22,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedTabIndex = 0;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _isGridView = true;
 
   final List<Color> _cardColors = [
     const Color(0xFFD6C7FF), // Lavender
@@ -74,6 +77,18 @@ class _HomeScreenState extends State<HomeScreen> {
     ).push(CupertinoPageRoute(builder: (context) => const SettingsScreen()));
   }
 
+  void _openChatAi() {
+    Navigator.of(
+      context,
+    ).push(CupertinoPageRoute(builder: (context) => const ChatAiScreen()));
+  }
+
+  void _openFlashcards() {
+    Navigator.of(
+      context,
+    ).push(CupertinoPageRoute(builder: (context) => const FlashcardsScreen()));
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<MapProvider>(context);
@@ -104,7 +119,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       )
                     : filteredMaps.isEmpty
                     ? _buildEmptyState()
-                    : _buildNotesGrid(filteredMaps, provider),
+                    : _isGridView
+                    ? _buildNotesGrid(filteredMaps, provider)
+                    : _buildNotesList(filteredMaps, provider),
               ),
 
               // Floating Top Header (Apple-style glassmorphic)
@@ -190,6 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     GestureDetector(
                       onTap: () {
                         HapticFeedback.mediumImpact();
+                        setState(() => _isGridView = !_isGridView);
                       },
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(28),
@@ -207,27 +225,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 18,
-                                    height: 2,
-                                    decoration: BoxDecoration(
-                                      color: textDark,
-                                      borderRadius: BorderRadius.circular(1),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    width: 18,
-                                    height: 2,
-                                    decoration: BoxDecoration(
-                                      color: textDark,
-                                      borderRadius: BorderRadius.circular(1),
-                                    ),
-                                  ),
-                                ],
+                              child: Icon(
+                                _isGridView
+                                    ? CupertinoIcons.list_bullet
+                                    : CupertinoIcons.square_grid_2x2,
+                                color: textDark,
+                                size: 23,
                               ),
                             ),
                           ),
@@ -269,9 +272,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           _buildNavBarItem(0, CupertinoIcons.home),
-                          _buildNavBarItem(1, CupertinoIcons.plus_app),
-                          _buildNavBarItem(2, CupertinoIcons.graph_square),
-                          _buildNavBarItem(3, CupertinoIcons.settings),
+                          _buildNavBarItem(
+                            1,
+                            CupertinoIcons.rectangle_stack,
+                          ),
+                          _buildNavBarItem(2, CupertinoIcons.plus),
+                          _buildNavBarItem(
+                            3,
+                            CupertinoIcons.sparkles,
+                          ),
+                          _buildNavBarItem(
+                            4,
+                            CupertinoIcons.settings,
+                          ),
                         ],
                       ),
                     ),
@@ -294,8 +307,12 @@ class _HomeScreenState extends State<HomeScreen> {
           _selectedTabIndex = index;
         });
         if (index == 1) {
+          _openFlashcards();
+        } else if (index == 2) {
           _openInput();
         } else if (index == 3) {
+          _openChatAi();
+        } else if (index == 4) {
           _openSettings();
         }
       },
@@ -305,12 +322,12 @@ class _HomeScreenState extends State<HomeScreen> {
         height: 52,
         decoration: BoxDecoration(
           color: isSelected ? textDark : Colors.transparent,
-          shape: BoxShape.circle,
+          borderRadius: BorderRadius.circular(22),
         ),
         child: Icon(
           icon,
           color: isSelected ? Colors.white : textDark.withOpacity(0.4),
-          size: 24,
+          size: index == 3 ? 25 : 23,
         ),
       ),
     );
@@ -469,6 +486,105 @@ class _HomeScreenState extends State<HomeScreen> {
             .animate()
             .fadeIn(delay: (index * 80).ms)
             .scale(begin: const Offset(0.9, 0.9));
+      },
+    );
+  }
+
+  Widget _buildNotesList(List<dynamic> maps, MapProvider provider) {
+    return ListView.separated(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(top: 76, bottom: 120),
+      itemCount: maps.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final map = maps[index];
+        return Dismissible(
+          key: Key('list-${map.id}'),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withOpacity(0.16),
+              borderRadius: BorderRadius.circular(22),
+            ),
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            child: const Icon(
+              CupertinoIcons.delete,
+              color: Colors.redAccent,
+              size: 26,
+            ),
+          ),
+          onDismissed: (_) async {
+            await provider.deleteMap(map.id);
+          },
+          child: GestureDetector(
+            onTap: () {
+              provider.selectMap(map);
+              Navigator.of(context).push(
+                CupertinoPageRoute(builder: (context) => const MindmapScreen()),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: surface.withValues(alpha: 0.72),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.36)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.flowchart,
+                      color: primary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          map.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: headingStyle(
+                            fontSize: 16,
+                            color: textDark,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_formatDate(map.createdAt)} • ${map.totalNodeCount} nodes',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: bodyStyle(
+                            fontSize: 12,
+                            color: textMid,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    CupertinoIcons.chevron_forward,
+                    color: textMid,
+                    size: 18,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ).animate().fadeIn(delay: (index * 50).ms);
       },
     );
   }
