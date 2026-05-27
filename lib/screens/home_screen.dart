@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -94,23 +95,37 @@ class _HomeScreenState extends State<HomeScreen> {
           bottom: false,
           child: Stack(
             children: [
+              // Content area with top padding for the floating top bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: provider.isLoading
+                    ? const Center(
+                        child: CupertinoActivityIndicator(radius: 14),
+                      )
+                    : filteredMaps.isEmpty
+                    ? _buildEmptyState()
+                    : _buildNotesGrid(filteredMaps, provider),
+              ),
+
+              // Floating Top Header (Apple-style glassmorphic)
+              Positioned(
+                top: 10,
+                left: 20,
+                right: 20,
+                child: Row(
                   children: [
-                    const SizedBox(height: 10),
-                    // Top header: "Talk to me..." search bar + Menu Button
-                    Row(
-                      children: [
-                        Expanded(
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                           child: Container(
                             height: 56,
                             decoration: BoxDecoration(
-                              color: surface.withOpacity(0.85),
+                              color: surface.withValues(alpha: 0.55),
                               borderRadius: BorderRadius.circular(28),
                               border: Border.all(
-                                color: textDark.withOpacity(0.08),
+                                color: Colors.white.withValues(alpha: 0.35),
                                 width: 1,
                               ),
                             ),
@@ -169,19 +184,25 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        GestureDetector(
-                          onTap: () {
-                            HapticFeedback.mediumImpact();
-                          },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                           child: Container(
                             width: 56,
                             height: 56,
                             decoration: BoxDecoration(
-                              color: surface.withOpacity(0.85),
+                              color: surface.withValues(alpha: 0.55),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: textDark.withOpacity(0.08),
+                                color: Colors.white.withValues(alpha: 0.35),
                                 width: 1,
                               ),
                             ),
@@ -211,56 +232,49 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 20),
-
-                    // Grid / List content area
-                    Expanded(
-                      child: provider.isLoading
-                          ? const Center(
-                              child: CupertinoActivityIndicator(radius: 14),
-                            )
-                          : filteredMaps.isEmpty
-                          ? _buildEmptyState()
-                          : _buildNotesGrid(filteredMaps, provider),
-                    ),
-                    const SizedBox(height: 100), // Space for bottom dock
                   ],
                 ),
               ),
 
-              // Floating Bottom Navigation Bar (Custom implementation matching screenshot)
+              // Floating Bottom Navigation Bar (Apple-style glassmorphic)
               Positioned(
                 bottom: 24,
                 left: 20,
                 right: 20,
-                child: Container(
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: surface.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(40),
-                    border: Border.all(
-                      color: textDark.withValues(alpha: 0.08),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(40),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                    child: Container(
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: surface.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(40),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.35),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 24,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildNavBarItem(0, CupertinoIcons.home),
-                      _buildNavBarItem(1, CupertinoIcons.plus_app),
-                      _buildNavBarItem(2, CupertinoIcons.graph_square),
-                      _buildNavBarItem(3, CupertinoIcons.settings),
-                    ],
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildNavBarItem(0, CupertinoIcons.home),
+                          _buildNavBarItem(1, CupertinoIcons.plus_app),
+                          _buildNavBarItem(2, CupertinoIcons.graph_square),
+                          _buildNavBarItem(3, CupertinoIcons.settings),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -329,7 +343,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildNotesGrid(List<dynamic> maps, MapProvider provider) {
     return GridView.builder(
+      clipBehavior: Clip.none,
       physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(top: 76, bottom: 120),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 14,
