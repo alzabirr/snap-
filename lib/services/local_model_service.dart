@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../storage/hive_storage.dart';
@@ -23,6 +24,9 @@ class LocalModelInfo {
 class LocalModelService {
   static final ValueNotifier<double> downloadProgress = ValueNotifier(0);
   static final ValueNotifier<bool> isDownloading = ValueNotifier(false);
+  static const MethodChannel _androidDownloadChannel = MethodChannel(
+    'snap/model_download',
+  );
   static Future<String>? _activeDownload;
 
   static const LocalModelInfo defaultModel = LocalModelInfo(
@@ -66,6 +70,11 @@ class LocalModelService {
     final storage = HiveStorage();
     await storage.saveSetting(_modelPathKey, null);
     await storage.saveSetting(_modelNameKey, null);
+    if (!kIsWeb && Platform.isAndroid) {
+      await _androidDownloadChannel.invokeMethod<void>(
+        'clearDefaultModelDownload',
+      );
+    }
   }
 
   static Future<String> downloadDefaultModel({
@@ -87,14 +96,26 @@ class LocalModelService {
       downloadProgress.value = 1;
       return saved;
     }
+    await syncBackgroundDownloadStatus();
     return downloadDefaultModel(
       onProgress: (progress) => downloadProgress.value = progress,
     );
   }
 
+  static Future<void> syncBackgroundDownloadStatus() async {
+    if (kIsWeb || !Platform.isAndroid) return;
+
+    final status = await _getAndroidDownloadStatus();
+    await _applyAndroidDownloadStatus(status);
+  }
+
   static Future<String> _downloadDefaultModel({
     required void Function(double progress) onProgress,
   }) async {
+    if (!kIsWeb && Platform.isAndroid) {
+      return _downloadDefaultModelWithAndroidManager(onProgress: onProgress);
+    }
+
     isDownloading.value = true;
     downloadProgress.value = 0;
     final modelsPath = await _modelsDirectoryPath();
@@ -138,5 +159,77 @@ class LocalModelService {
     isDownloading.value = false;
 
     return destinationPath;
+  }
+
+  static Future<String> _downloadDefaultModelWithAndroidManager({
+    required void Function(double progress) onProgress,
+  }) async {
+    isDownloading.value = true;
+
+    var status = await _startAndroidDownload();
+    while (true) {
+      final path = await _applyAndroidDownloadStatus(status);
+      final progress = _progressFromStatus(status);
+      onProgress(progress);
+      downloadProgress.value = progress;
+
+      if (path != null) {
+        isDownloading.value = false;
+        return path;
+      }
+
+      final state = status['status'] as String? ?? 'idle';
+      if (state == 'failed') {
+        isDownloading.value = false;
+        throw Exception('Model download failed');
+      }
+
+      await Future<void>.delayed(const Duration(seconds: 1));
+      status = await _getAndroidDownloadStatus();
+    }
+  }
+
+  static Future<Map<String, dynamic>> _startAndroidDownload() async {
+    final result = await _androidDownloadChannel
+        .invokeMapMethod<String, dynamic>('startDefaultModelDownload', {
+          'url': defaultModel.url,
+          'fileName': defaultModel.fileName,
+          'title': defaultModel.name,
+        });
+    return result ?? const <String, dynamic>{'status': 'idle'};
+  }
+
+  static Future<Map<String, dynamic>> _getAndroidDownloadStatus() async {
+    final result = await _androidDownloadChannel
+        .invokeMapMethod<String, dynamic>('getDefaultModelDownloadStatus');
+    return result ?? const <String, dynamic>{'status': 'idle'};
+  }
+
+  static Future<String?> _applyAndroidDownloadStatus(
+    Map<String, dynamic> status,
+  ) async {
+    final state = status['status'] as String? ?? 'idle';
+    final progress = _progressFromStatus(status);
+    downloadProgress.value = progress;
+    isDownloading.value =
+        state == 'running' || state == 'pending' || state == 'paused';
+
+    if (state != 'complete') return null;
+
+    final path = status['path'] as String?;
+    if (path == null || !await File(path).exists()) return null;
+
+    final storage = HiveStorage();
+    await storage.saveSetting(_modelPathKey, path);
+    await storage.saveSetting(_modelNameKey, defaultModel.name);
+    downloadProgress.value = 1;
+    isDownloading.value = false;
+    return path;
+  }
+
+  static double _progressFromStatus(Map<String, dynamic> status) {
+    final progress = status['progress'];
+    if (progress is num) return progress.toDouble().clamp(0, 1);
+    return 0;
   }
 }
