@@ -191,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: bgLight,
       body: AmbientBackground(
         child: SafeArea(
           child: ListView(
@@ -200,25 +200,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Row(
                     children: [
-                      CupertinoButton(
+                       CupertinoButton(
                         padding: EdgeInsets.zero,
                         minimumSize: const Size(44, 44),
                         onPressed: () => Navigator.of(context).pop(),
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: surface.withValues(alpha: 0.86),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: textDark.withValues(alpha: 0.08),
-                            ),
-                          ),
-                          child: const Icon(
-                            CupertinoIcons.chevron_left,
-                            color: textDark,
-                            size: 20,
-                          ),
+                        child: Icon(
+                          CupertinoIcons.chevron_left,
+                          color: textDark,
+                          size: 28,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -273,6 +262,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _SettingsGroup(
                     title: 'App',
                     children: [
+                      _SwitchSetting(
+                        title: 'Dark Mode',
+                        value: isDarkMode,
+                        onChanged: (val) async {
+                          await _storage.saveSetting('darkMode', val);
+                          darkModeNotifier.value = val;
+                          setState(() {});
+                        },
+                      ),
+                      _Divider(),
                       _SwitchSetting(
                         title: 'Haptic feedback',
                         value: _hapticFeedbackEnabled,
@@ -331,7 +330,7 @@ class _ProfileHeader extends StatelessWidget {
             Container(
               width: 62,
               height: 62,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: [primary, accent],
@@ -372,7 +371,7 @@ class _ProfileHeader extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(
+             Icon(
               CupertinoIcons.chevron_forward,
               color: textMid,
               size: 18,
@@ -476,7 +475,7 @@ class _ModelStatusCard extends StatelessWidget {
                 minHeight: 7,
                 value: progress == 0 ? null : progress.clamp(0, 1),
                 backgroundColor: primary.withValues(alpha: 0.12),
-                valueColor: const AlwaysStoppedAnimation<Color>(primary),
+                valueColor: AlwaysStoppedAnimation<Color>(primary),
               ),
             ),
           ],
@@ -590,7 +589,7 @@ class _ActionSetting extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(CupertinoIcons.chevron_forward, color: textMid, size: 18),
+           Icon(CupertinoIcons.chevron_forward, color: textMid, size: 18),
         ],
       ),
     );

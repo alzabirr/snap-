@@ -21,34 +21,18 @@ class AiMindMapService {
         .toList();
 
     final title = _extractTitle(lines, sentences);
-    final groups = <String, List<String>>{
-      'Core Summary': [],
-      'Key Ideas': [],
-      'People & Roles': [],
-      'Timeline': [],
-      'Questions': [],
-      'Action Items': [],
-      'Risks & Gaps': [],
-    };
+    final groups = <String, List<String>>{};
 
     for (final sentence in sentences) {
-      final lower = sentence.toLowerCase();
-      if (_containsAny(lower, ['who', 'person', 'team', 'role', 'owner', 'lead'])) {
-        groups['People & Roles']!.add(sentence);
-      } else if (_containsAny(lower, ['when', 'date', 'deadline', 'timeline', 'today', 'tomorrow', 'week', 'month', 'year', 'by '])) {
-        groups['Timeline']!.add(sentence);
-      } else if (sentence.endsWith('?') || _containsAny(lower, ['why', 'how', 'what if'])) {
-        groups['Questions']!.add(sentence);
-      } else if (_containsAny(lower, ['todo', 'must', 'need to', 'action', 'build', 'create', 'make', 'fix', 'launch'])) {
-        groups['Action Items']!.add(sentence);
-      } else if (_containsAny(lower, ['risk', 'problem', 'issue', 'gap', 'blocker', 'challenge', 'fail'])) {
-        groups['Risks & Gaps']!.add(sentence);
-      } else {
-        groups['Key Ideas']!.add(sentence);
-      }
+      final branch = _inferBranchTitle(sentence);
+      groups.putIfAbsent(branch, () => <String>[]).add(sentence);
     }
 
-    groups['Core Summary']!.addAll(_buildSummaryPoints(title, sentences));
+    if (sentences.isNotEmpty) {
+      groups
+          .putIfAbsent(title, () => <String>[])
+          .insertAll(0, _buildSummaryPoints(title, sentences).take(2));
+    }
 
     final nodes = <MindMapNode>[];
     var colorIndex = 0;
@@ -64,10 +48,8 @@ class AiMindMapService {
           colorValue: colorValue,
           children: items
               .map(
-                (item) => MindMapNode(
-                  title: _trim(item, 92),
-                  colorValue: colorValue,
-                ),
+                (item) =>
+                    MindMapNode(title: _trim(item, 92), colorValue: colorValue),
               )
               .toList(),
         ),
@@ -87,16 +69,49 @@ class AiMindMapService {
     return 'AI Mind Map';
   }
 
-  static List<String> _buildSummaryPoints(String title, List<String> sentences) {
+  static List<String> _buildSummaryPoints(
+    String title,
+    List<String> sentences,
+  ) {
     final points = <String>[];
     points.add('Main topic: $title');
     if (sentences.isNotEmpty) {
       points.add(_trim(sentences.first, 100));
     }
     if (sentences.length > 1) {
-      points.add('${sentences.length} source points were organized into branches.');
+      points.add(
+        '${sentences.length} source points were organized into branches.',
+      );
     }
     return points;
+  }
+
+  static String _inferBranchTitle(String sentence) {
+    final clean = sentence.replaceAll(RegExp(r'[:#*]'), '').trim();
+    final lower = clean.toLowerCase();
+    if (_containsAny(lower, ['because', 'reason', 'therefore', 'why'])) {
+      return _trimWords(clean, 3);
+    }
+    if (_containsAny(lower, ['compare', 'versus', ' vs ', 'difference'])) {
+      return 'Comparisons';
+    }
+    if (_containsAny(lower, ['example', 'case', 'instance'])) {
+      return 'Examples';
+    }
+    if (_containsAny(lower, ['risk', 'problem', 'issue', 'gap', 'challenge'])) {
+      return 'Concerns';
+    }
+    if (_containsAny(lower, [
+      'must',
+      'need to',
+      'todo',
+      'build',
+      'create',
+      'fix',
+    ])) {
+      return 'Next Steps';
+    }
+    return _trimWords(clean, 3);
   }
 
   static bool _containsAny(String value, List<String> words) {

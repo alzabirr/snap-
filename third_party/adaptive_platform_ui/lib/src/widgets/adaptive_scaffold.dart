@@ -1,4 +1,4 @@
-import 'package:adaptive_platform_ui/src/widgets/ios26/ios26_native_tab_bar.dart';
+import 'ios26/ios26_native_tab_bar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../platform/platform_info.dart';
@@ -618,7 +618,7 @@ class _AdaptiveScaffoldState extends State<AdaptiveScaffold> {
           currentIndex: widget.bottomNavigationBar!.selectedIndex!,
           onTap: widget.bottomNavigationBar!.onTap!,
           activeColor: widget.bottomNavigationBar!.selectedItemColor,
-          inactiveColor: unselectedColor,
+          inactiveColor: unselectedColor ?? CupertinoColors.inactiveGray,
           items: widget.bottomNavigationBar!.items!.map((dest) {
             Widget iconWidget = _buildNavigationIconWidget(
               rawIcon: dest.icon,

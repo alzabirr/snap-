@@ -64,7 +64,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         CupertinoIcons.chevron_left,
                         color: textDark,
                         size: 20,
@@ -150,7 +150,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                       color: primary.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(15),
                                     ),
-                                    child: const Icon(
+                                    child: Icon(
                                       CupertinoIcons.flowchart,
                                       color: primary,
                                       size: 22,
@@ -183,7 +183,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                       ],
                                     ),
                                   ),
-                                  const Icon(
+                                  Icon(
                                     CupertinoIcons.chevron_forward,
                                     color: textMid,
                                     size: 18,

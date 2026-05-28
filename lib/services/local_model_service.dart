@@ -97,6 +97,11 @@ class LocalModelService {
       return saved;
     }
     await syncBackgroundDownloadStatus();
+    final synced = await savedModelPath();
+    if (synced != null) {
+      downloadProgress.value = 1;
+      return synced;
+    }
     return downloadDefaultModel(
       onProgress: (progress) => downloadProgress.value = progress,
     );

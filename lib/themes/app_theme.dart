@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-const Color primary = Color(0xFF5E5CE6); // bright violet/indigo
-const Color accent = Color(0xFFD946EF); // glowing magenta/pink
-const Color bgLight = Color(0xFFFFFFFF); // Solid White background
-const Color surface = Color(0xFFFFFFFF); // White card surface
-const Color textDark = Color(0xFF1C1C1E); // Dark typography
-const Color textMid = Color(0xFF8E8E93); // Gray text slate
+// Global ValueNotifier to hold the current dark mode status
+final ValueNotifier<bool> darkModeNotifier = ValueNotifier<bool>(false);
+
+bool get isDarkMode => darkModeNotifier.value;
+
+Color get primary => const Color(0xFF5E5CE6); // bright violet/indigo
+Color get accent => const Color(0xFFD946EF); // glowing magenta/pink
+Color get bgLight => isDarkMode ? const Color(0xFF000000) : const Color(0xFFFFFFFF); // Solid White or AMOLED Black background
+Color get surface => isDarkMode ? const Color(0xFF121212) : const Color(0xFFFFFFFF); // White or Dark card surface
+Color get textDark => isDarkMode ? const Color(0xFFF5F5F7) : const Color(0xFF1C1C1E); // Dark or Light typography
+Color get textMid => isDarkMode ? const Color(0xFF98989D) : const Color(0xFF8E8E93); // Gray text slate
 
 const List<Color> nodeColors = [
   Color(0xFF818CF8), // indigo
@@ -98,12 +103,12 @@ const BoxShadow cardShadow = BoxShadow(
 // Inter helper (Apple minimalist headings)
 TextStyle headingStyle({
   double fontSize = 24.0,
-  Color color = textDark,
+  Color? color,
   FontWeight fontWeight = FontWeight.w300, // Thin modern aesthetic
 }) {
   return GoogleFonts.inter(
     fontSize: fontSize,
-    color: color,
+    color: color ?? textDark,
     fontWeight: fontWeight,
     letterSpacing: -0.5,
     decoration: TextDecoration.none,
@@ -113,13 +118,13 @@ TextStyle headingStyle({
 // Inter helper (Apple minimalist body)
 TextStyle bodyStyle({
   double fontSize = 14.0,
-  Color color = textDark,
+  Color? color,
   FontWeight fontWeight = FontWeight.w300, // Thin/Light modern aesthetic
   double? height,
 }) {
   return GoogleFonts.inter(
     fontSize: fontSize,
-    color: color,
+    color: color ?? textDark,
     fontWeight: fontWeight,
     height: height,
     letterSpacing: -0.2,

@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-
 
 /// Offline voice-to-text service powered by the local speech_to_text package.
 /// Captures speech input directly on device without sending data online.
@@ -13,8 +11,8 @@ class VoiceInputService {
     if (_isInitialized) return true;
     try {
       _isInitialized = await _speechToText.initialize(
-        onError: (val) => print('Speech error: $val'),
-        onStatus: (val) => print('Speech status: $val'),
+        onError: (_) {},
+        onStatus: (_) {},
       );
     } catch (e) {
       _isInitialized = false;
@@ -23,10 +21,7 @@ class VoiceInputService {
   }
 
   /// Starts listening to device mic. Triggers callback on text recognized.
-  Future<void> startListening({
-    required Function(String) onResult,
-    required VoidCallback onSoundLevelChanged,
-  }) async {
+  Future<void> startListening({required Function(String) onResult}) async {
     final available = await initSpeech();
     if (available) {
       await _speechToText.listen(

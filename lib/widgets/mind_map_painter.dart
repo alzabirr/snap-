@@ -127,7 +127,7 @@ class MindMapPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint()..color = Colors.white,
+      Paint()..color = bgLight,
     );
 
     // Get calculated positions
@@ -141,7 +141,7 @@ class MindMapPainter extends CustomPainter {
     const double branchHeight = 46.0;
     const double childWidth = 110.0;
     const double childHeight = 36.0;
-    const Color mapNodeColor = primary;
+    final Color mapNodeColor = primary;
 
     // 2. Render Bezier Connector Lines
     for (int i = 0; i < data.nodes.length; i++) {

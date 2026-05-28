@@ -100,7 +100,12 @@ class MainActivity : FlutterActivity() {
 
                             val activeId = modelPrefs.getLong("download_id", -1L)
                             val activeStatus = queryDownload(activeId)
-                            if (activeStatus["status"] == "running" || activeStatus["status"] == "pending") {
+                            if (
+                                activeStatus["status"] == "running" ||
+                                activeStatus["status"] == "pending" ||
+                                activeStatus["status"] == "paused" ||
+                                activeStatus["status"] == "complete"
+                            ) {
                                 result.success(activeStatus)
                                 return@setMethodCallHandler
                             }
@@ -178,10 +183,10 @@ class MainActivity : FlutterActivity() {
 
         val manager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val cursor = manager.query(DownloadManager.Query().setFilterById(downloadId))
-            ?: return mapOf("status" to "idle", "progress" to 0.0)
+            ?: return finishDownload()
 
         cursor.use {
-            if (!it.moveToFirst()) return mapOf("status" to "idle", "progress" to 0.0)
+            if (!it.moveToFirst()) return finishDownload()
 
             val status = it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
             val downloaded = it.getLong(
@@ -214,10 +219,17 @@ class MainActivity : FlutterActivity() {
             if (partial.exists()) {
                 finalFile.parentFile?.mkdirs()
                 if (finalFile.exists()) finalFile.delete()
-                partial.renameTo(finalFile)
+                if (!partial.renameTo(finalFile)) {
+                    partial.copyTo(finalFile, overwrite = true)
+                    partial.delete()
+                }
             }
             if (finalFile.exists() && finalFile.length() > 0L) {
-                modelPrefs.edit().remove("download_id").apply()
+                modelPrefs.edit()
+                    .putString("path", finalFile.absolutePath)
+                    .remove("download_id")
+                    .remove("partial_path")
+                    .apply()
                 return mapOf("status" to "complete", "path" to finalFile.absolutePath, "progress" to 1.0)
             }
         }

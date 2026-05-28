@@ -61,7 +61,7 @@ class _NodeEditDialogState extends State<NodeEditDialog> {
                     ),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
-                      child: const Icon(CupertinoIcons.clear_thick, color: textMid, size: 20),
+                      child: Icon(CupertinoIcons.clear_thick, color: textMid, size: 20),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -144,7 +144,7 @@ class _NodeEditDialogState extends State<NodeEditDialog> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(CupertinoIcons.add, color: accent, size: 18),
+                        Icon(CupertinoIcons.add, color: accent, size: 18),
                         const SizedBox(width: 6),
                         Text(
                           'Add Key Point child',

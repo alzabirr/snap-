@@ -41,6 +41,8 @@ dependencies:
   liquid_glass_widgets: ^0.12.8
   glassmorphism_ui: ^0.3.0
   blur: ^4.0.0
+  speech_to_text: ^7.4.0
+  llamadart: 0.6.16
 dev_dependencies:
   flutter_test:
     sdk: flutter

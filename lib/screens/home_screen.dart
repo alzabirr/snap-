@@ -27,10 +27,13 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isGridView = true;
 
   final List<Color> _cardColors = [
-    const Color(0xFFD6C7FF), // Lavender
-    const Color(0xFFABF680), // Lime Green
-    const Color(0xFFBFEFFF), // Light Blue
-    const Color(0xFFFFD1A9), // Peach
+    const Color(0xFFA8A6FF),
+    const Color(0xFF918EFA),
+    const Color(0xFF807DFA),
+    const Color(0xFFFA8CEF),
+    const Color(0xFFFA7FEE),
+    const Color(0xFFFF9F9F),
+    const Color(0xFF79F7FF),
   ];
 
   @override
@@ -104,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: Colors.black,
+      backgroundColor: bgLight,
       body: AmbientBackground(
         child: SafeArea(
           bottom: false,
@@ -149,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Row(
                               children: [
-                                const Icon(
+                                 Icon(
                                   CupertinoIcons.search,
                                   color: textMid,
                                   size: 20,
@@ -321,12 +324,16 @@ class _HomeScreenState extends State<HomeScreen> {
         width: 52,
         height: 52,
         decoration: BoxDecoration(
-          color: isSelected ? textDark : Colors.transparent,
+          color: isSelected
+              ? (isDarkMode ? Colors.white : const Color(0xFF1C1C1E))
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(22),
         ),
         child: Icon(
           icon,
-          color: isSelected ? Colors.white : textDark.withOpacity(0.4),
+          color: isSelected
+              ? (isDarkMode ? const Color(0xFF121212) : Colors.white)
+              : textDark.withOpacity(0.4),
           size: index == 3 ? 25 : 23,
         ),
       ),
@@ -405,13 +412,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: BoxDecoration(
                     color: cardColor,
                     borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.12),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   padding: const EdgeInsets.all(18),
                   child: Column(
@@ -421,14 +421,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                           Text(
                             map.title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: headingStyle(
                               fontSize: 18,
-                              color: Colors.black,
-                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF1C1C1E),
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -436,8 +436,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             _formatDate(map.createdAt),
                             style: bodyStyle(
                               fontSize: 11,
-                              color: Colors.black54,
-                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF1C1C1E).withValues(alpha: 0.8),
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -448,8 +448,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: bodyStyle(
                           fontSize: 12,
-                          color: Colors.black.withOpacity(0.6),
+                          color: const Color(0xFF1C1C1E).withValues(alpha: 0.8),
                           height: 1.3,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                       Row(
@@ -458,13 +459,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           Container(
                             width: 28,
                             height: 28,
-                            decoration: const BoxDecoration(
-                              color: Colors.black,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1C1C1E).withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
                               CupertinoIcons.flowchart,
-                              color: Colors.white,
+                              color: Color(0xFF1C1C1E),
                               size: 14,
                             ),
                           ),
@@ -472,7 +473,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             '${map.totalNodeCount} nodes',
                             style: bodyStyle(
                               fontSize: 11,
-                              color: Colors.black87,
+                              color: const Color(0xFF1C1C1E).withValues(alpha: 0.9),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -540,7 +541,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       CupertinoIcons.flowchart,
                       color: primary,
                       size: 22,
@@ -575,7 +576,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  const Icon(
+                   Icon(
                     CupertinoIcons.chevron_forward,
                     color: textMid,
                     size: 18,

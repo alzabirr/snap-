@@ -1,4 +1,5 @@
 import '../../models/snap_map_model.dart';
+import '../../services/local_llm_service.dart';
 
 class Flashcard {
   final String question;
@@ -13,6 +14,31 @@ class Flashcard {
 }
 
 class FlashcardsService {
+  static Future<List<Flashcard>> generateFromMapsWithLlm(
+    List<SnapMapData> maps,
+  ) async {
+    final cards = <Flashcard>[];
+    for (final map in maps) {
+      try {
+        final generated = await LocalLlmService.generateFlashcardsFromMap(map);
+        cards.addAll(
+          generated.map(
+            (card) => Flashcard(
+              question: card['question'] ?? '',
+              answer: card['answer'] ?? '',
+              sourceTitle: map.title,
+            ),
+          ),
+        );
+      } catch (_) {
+        cards.addAll(generateFromMaps([map]));
+      }
+    }
+    return cards
+        .where((card) => card.question.isNotEmpty && card.answer.isNotEmpty)
+        .toList();
+  }
+
   static List<Flashcard> generateFromMaps(List<SnapMapData> maps) {
     final cards = <Flashcard>[];
     for (final map in maps) {

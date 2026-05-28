@@ -36,9 +36,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background Gradient matching page selection
+          // Background Gradient matching page selection (Light Crisp gradients)
           AnimatedContainer(
             duration: const Duration(milliseconds: 600),
             decoration: BoxDecoration(
@@ -64,7 +65,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             child: Text(
                               'Skip',
-                              style: headingStyle(fontSize: 15, color: Colors.white.withOpacity(0.85)),
+                              style: headingStyle(fontSize: 15, color: primary, fontWeight: FontWeight.w600),
                             ),
                             onPressed: () => _finishOnboarding(context),
                           )
@@ -121,7 +122,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             width: _currentPage == index ? 24 : 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: _currentPage == index ? Colors.white : Colors.white.withOpacity(0.4),
+                              color: _currentPage == index ? primary : primary.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -136,13 +137,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ? SizedBox(
                                 width: double.infinity,
                                 key: const ValueKey('cta_start'),
-                                child: CupertinoButton(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(buttonRadius),
-                                  onPressed: () => _finishOnboarding(context),
-                                  child: Text(
-                                    'Get Started',
-                                    style: headingStyle(fontSize: 16, color: accent),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(buttonRadius),
+                                    gradient: LinearGradient(
+                                      colors: [primary, accent],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: primary.withOpacity(0.3),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: CupertinoButton(
+                                    padding: EdgeInsets.zero,
+                                    onPressed: () => _finishOnboarding(context),
+                                    child: Text(
+                                      'Get Started',
+                                      style: headingStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w700),
+                                    ),
                                   ),
                                 ).animate().scale(begin: const Offset(0.95, 0.95), duration: 150.ms, curve: Curves.easeOutBack),
                               )
@@ -150,7 +167,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 width: double.infinity,
                                 key: const ValueKey('cta_next'),
                                 child: CupertinoButton(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: primary.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(buttonRadius),
                                   onPressed: () {
                                     _pageController.nextPage(
@@ -160,7 +177,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   },
                                   child: Text(
                                     'Continue',
-                                    style: headingStyle(fontSize: 16, color: Colors.white),
+                                    style: headingStyle(fontSize: 16, color: primary, fontWeight: FontWeight.w700),
                                   ),
                                 ),
                               ),
@@ -179,13 +196,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   List<Color> _getBackgroundColors(int page) {
     switch (page) {
       case 0:
-        return [const Color(0xFF4F46E5), const Color(0xFF312E81)]; // Indigo theme
+        return [const Color(0xFFFFFFFF), const Color(0xFFF3F4F6)]; // Crisp white to very light grey
       case 1:
-        return [const Color(0xFF7C3AED), const Color(0xFF4C1D95)]; // Violet theme
+        return [const Color(0xFFFFFFFF), const Color(0xFFEEF2F6)]; // Pure white to soft slate grey
       case 2:
-        return [const Color(0xFF059669), const Color(0xFF064E3B)]; // Emerald theme
+        return [const Color(0xFFFFFFFF), const Color(0xFFECFDF5)]; // Pure white to very soft mint
       default:
-        return [const Color(0xFF4F46E5), const Color(0xFF312E81)];
+        return [const Color(0xFFFFFFFF), const Color(0xFFF3F4F6)];
     }
   }
 
@@ -213,7 +230,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           // Title
           Text(
             title,
-            style: headingStyle(fontSize: 28, color: Colors.white),
+            style: headingStyle(fontSize: 28, color: textDark, fontWeight: FontWeight.w800),
             textAlign: TextAlign.center,
           ).animate(delay: animateDelay).fadeIn(duration: 400.ms).slideY(begin: 0.15, end: 0),
           const SizedBox(height: 16),
@@ -221,7 +238,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           // Subtitle
           Text(
             subtitle,
-            style: bodyStyle(fontSize: 15, color: Colors.white.withOpacity(0.8), height: 1.5),
+            style: bodyStyle(fontSize: 15, color: textMid, height: 1.5, fontWeight: FontWeight.w400),
             textAlign: TextAlign.center,
           ).animate(delay: animateDelay + 100.ms).fadeIn(duration: 400.ms).slideY(begin: 0.15, end: 0),
         ],
@@ -230,23 +247,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-// Custom Painter illustrations for onboarding pages
+// Custom Painter illustrations for onboarding pages with dynamic, rich colors
 
 class _BrainIllustrationPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
 
     // Draw central brain glow
-    canvas.drawCircle(center, 45, Paint()..color = Colors.white.withOpacity(0.12)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15));
-    canvas.drawCircle(center, 30, Paint()..color = Colors.white.withOpacity(0.2));
+    canvas.drawCircle(center, 45, Paint()..color = primary.withOpacity(0.12)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15));
+    canvas.drawCircle(center, 30, Paint()..color = primary.withOpacity(0.2));
 
     // Brain icon representation
     final iconPaint = Paint()
-      ..color = Colors.white
+      ..color = primary
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;
@@ -262,7 +276,7 @@ class _BrainIllustrationPainter extends CustomPainter {
 
     // Draw surrounding text notes floating and linking to the brain
     final linkPaint = Paint()
-      ..color = Colors.white.withOpacity(0.4)
+      ..color = primary.withOpacity(0.4)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
@@ -277,10 +291,10 @@ class _BrainIllustrationPainter extends CustomPainter {
       canvas.drawLine(center, point, linkPaint);
       canvas.drawRRect(
         RRect.fromRectAndRadius(Rect.fromCenter(center: point, width: 44, height: 22), const Radius.circular(6)),
-        Paint()..color = Colors.white.withOpacity(0.15),
+        Paint()..color = accent.withOpacity(0.12),
       );
       // Small mock text lines
-      canvas.drawLine(point - const Offset(10, 0), point + const Offset(10, 0), Paint()..color = Colors.white.withOpacity(0.6)..strokeWidth = 2);
+      canvas.drawLine(point - const Offset(10, 0), point + const Offset(10, 0), Paint()..color = accent.withOpacity(0.6)..strokeWidth = 2);
     }
   }
 
@@ -292,10 +306,11 @@ class _MapIllustrationPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
+    final violetColor = const Color(0xFF7C3AED);
     
     // Draw connections
     final linkPaint = Paint()
-      ..color = Colors.white.withOpacity(0.5)
+      ..color = violetColor.withOpacity(0.5)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
@@ -322,19 +337,19 @@ class _MapIllustrationPainter extends CustomPainter {
       final sub2 = Offset(pos.dx + dirX * 30, pos.dy + 20);
       canvas.drawLine(pos, sub1, linkPaint);
       canvas.drawLine(pos, sub2, linkPaint);
-      canvas.drawCircle(sub1, 5, Paint()..color = Colors.white.withOpacity(0.8));
-      canvas.drawCircle(sub2, 5, Paint()..color = Colors.white.withOpacity(0.8));
+      canvas.drawCircle(sub1, 5, Paint()..color = violetColor.withOpacity(0.8));
+      canvas.drawCircle(sub2, 5, Paint()..color = violetColor.withOpacity(0.8));
 
       // Draw branch nodes
       canvas.drawRRect(
         RRect.fromRectAndRadius(Rect.fromCenter(center: pos, width: 48, height: 20), const Radius.circular(6)),
-        Paint()..color = Colors.white,
+        Paint()..color = violetColor,
       );
     }
 
     // Draw central root node
-    canvas.drawCircle(center, 22, Paint()..color = Colors.white);
-    canvas.drawCircle(center, 18, Paint()..color = accent);
+    canvas.drawCircle(center, 22, Paint()..color = violetColor.withOpacity(0.2));
+    canvas.drawCircle(center, 14, Paint()..color = violetColor);
   }
 
   @override
@@ -345,10 +360,11 @@ class _OfflineIllustrationPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
+    final emeraldColor = const Color(0xFF059669);
     
     // Draw globe/shield grid lines in background
     final bgPaint = Paint()
-      ..color = Colors.white.withOpacity(0.08)
+      ..color = emeraldColor.withOpacity(0.12)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     canvas.drawCircle(center, 75, bgPaint);
@@ -365,11 +381,11 @@ class _OfflineIllustrationPainter extends CustomPainter {
     shieldPath.quadraticBezierTo(center.dx - 30, center.dy - 40, center.dx, center.dy - 40);
     shieldPath.close();
 
-    canvas.drawPath(shieldPath, Paint()..color = Colors.white.withOpacity(0.15));
+    canvas.drawPath(shieldPath, Paint()..color = emeraldColor.withOpacity(0.15));
     canvas.drawPath(
       shieldPath,
       Paint()
-        ..color = Colors.white
+        ..color = emeraldColor
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3
         ..strokeJoin = StrokeJoin.round,
@@ -377,14 +393,14 @@ class _OfflineIllustrationPainter extends CustomPainter {
 
     // Draw Lock body & shackle inside shield
     final lockCenter = center - const Offset(0, 5);
-    final lockPaint = Paint()..color = Colors.white;
+    final lockPaint = Paint()..color = emeraldColor;
     canvas.drawRRect(
       RRect.fromRectAndRadius(Rect.fromCenter(center: lockCenter + const Offset(0, 10), width: 22, height: 16), const Radius.circular(3)),
       lockPaint,
     );
     
     final shacklePaint = Paint()
-      ..color = Colors.white
+      ..color = emeraldColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
     canvas.drawArc(

@@ -457,7 +457,7 @@ class _MindmapScreenState extends State<MindmapScreen> with TickerProviderStateM
                           width: 6,
                           height: 6,
                           margin: const EdgeInsets.only(top: 8, right: 10),
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             color: primary,
                             shape: BoxShape.circle,
                           ),
@@ -489,7 +489,7 @@ class _MindmapScreenState extends State<MindmapScreen> with TickerProviderStateM
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgLight,
       body: SafeArea(
         child: Stack(
           children: [
@@ -535,26 +535,10 @@ class _MindmapScreenState extends State<MindmapScreen> with TickerProviderStateM
             child: CupertinoButton(
               padding: EdgeInsets.zero,
               onPressed: () => Navigator.pop(context),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: textDark.withValues(alpha: 0.08)),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x14000000),
-                      blurRadius: 16,
-                      offset: Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  CupertinoIcons.chevron_left,
-                  color: textDark,
-                  size: 22,
-                ),
+              child: Icon(
+                CupertinoIcons.chevron_left,
+                color: textDark,
+                size: 28,
               ),
             ),
           ),

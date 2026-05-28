@@ -3,8 +3,9 @@ import 'package:flutter/material.dart' show Colors, BoxShadow;
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import '../models/snap_map_model.dart';
 import '../providers/map_provider.dart';
-import '../services/ai_mind_map_service.dart';
+import '../services/local_llm_service.dart';
 import '../services/local_model_service.dart';
 import '../services/text_parser_service.dart';
 import '../themes/app_theme.dart';
@@ -40,13 +41,21 @@ class _ModePill extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         height: 44,
         decoration: BoxDecoration(
-          color: isSelected ? textDark : Colors.transparent,
+          color: isSelected
+              ? (isDarkMode ? Colors.white : const Color(0xFF1C1C1E))
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: isSelected ? Colors.white : textMid),
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected
+                  ? (isDarkMode ? const Color(0xFF121212) : Colors.white)
+                  : textMid,
+            ),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
@@ -55,7 +64,9 @@ class _ModePill extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: bodyStyle(
                   fontSize: 13,
-                  color: isSelected ? Colors.white : textMid,
+                  color: isSelected
+                      ? (isDarkMode ? const Color(0xFF121212) : Colors.white)
+                      : textMid,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -196,12 +207,9 @@ class _InputScreenState extends State<InputScreen>
     });
 
     try {
-      var parsedData;
+      SnapMapData parsedData;
       if (_useLocalAI) {
-        parsedData = await Future.delayed(
-          const Duration(milliseconds: 500),
-          () => AiMindMapService.generateNotebookStyleMap(text),
-        );
+        parsedData = await LocalLlmService.generateMindMapFromText(text);
       } else {
         parsedData = await Future.delayed(
           const Duration(milliseconds: 650),
@@ -231,6 +239,7 @@ class _InputScreenState extends State<InputScreen>
       // Fallback to text parsing
       try {
         final parsedData = TextParserService.parse(text);
+        if (!mounted) return;
         final provider = Provider.of<MapProvider>(context, listen: false);
         await provider.saveMap(parsedData);
         provider.selectMap(parsedData);
@@ -253,7 +262,7 @@ class _InputScreenState extends State<InputScreen>
     if (_isParsing) return const ShimmerLoader();
 
     return CupertinoPageScaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: bgLight,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -265,21 +274,10 @@ class _InputScreenState extends State<InputScreen>
                   CupertinoButton(
                     padding: EdgeInsets.zero,
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: textDark.withValues(alpha: 0.06),
-                        ),
-                      ),
-                      child: const Icon(
-                        CupertinoIcons.chevron_left,
-                        color: textDark,
-                        size: 20,
-                      ),
+                    child: Icon(
+                      CupertinoIcons.chevron_left,
+                      color: textDark,
+                      size: 28,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -348,7 +346,7 @@ class _InputScreenState extends State<InputScreen>
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: surface,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: textDark.withValues(alpha: 0.06),
@@ -385,7 +383,7 @@ class _InputScreenState extends State<InputScreen>
                       ),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: surface,
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
                             color: _charCount > 0
@@ -406,8 +404,7 @@ class _InputScreenState extends State<InputScreen>
                           children: [
                             CupertinoTextField(
                               controller: _textController,
-                              placeholder:
-                                  'Paste your notes here...',
+                              placeholder: 'Paste your notes here...',
                               minLines: 11,
                               maxLines: null,
                               keyboardType: TextInputType.multiline,
