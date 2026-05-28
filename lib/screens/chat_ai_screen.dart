@@ -279,7 +279,7 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
   }
 
   Future<_ChatMessage> _buildLocalResponse(String input) async {
-    const modelPrefix = 'Local study mode is ready.\n\n';
+    const modelPrefix = '';
     final lower = input.toLowerCase();
 
     if (lower.contains('summary') || lower.contains('summarize')) {
@@ -433,7 +433,7 @@ class _ChatAiScreenState extends State<ChatAiScreen> {
             size: 28,
           ),
         ),
-        middle: Text('Chat AI', style: headingStyle(fontSize: 18)),
+        middle: Text('Chat', style: headingStyle(fontSize: 18)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
