@@ -30,11 +30,11 @@ class LocalModelService {
   static Future<String>? _activeDownload;
 
   static const LocalModelInfo defaultModel = LocalModelInfo(
-    name: 'Gemma 3 1B IT Q4',
-    fileName: 'gemma-3-1b-it-q4_k_m.gguf',
+    name: 'TinyLlama 1.1B Chat Q4',
+    fileName: 'tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
     url:
-        'https://huggingface.co/itlwas/gemma-3-1b-it-Q4_K_M-GGUF/resolve/main/gemma-3-1b-it-q4_k_m.gguf',
-    approximateSize: 'about 800 MB',
+        'https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
+    approximateSize: 'about 669 MB',
   );
 
   static const String _modelPathKey = 'local_model_path';

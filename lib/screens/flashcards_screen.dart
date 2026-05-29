@@ -222,9 +222,8 @@ class _FlashcardsScreenState extends State<FlashcardsScreen> {
                   Text(
                     'Flashcards',
                     style: headingStyle(
-                      fontSize: 26,
+                      fontSize: 18,
                       color: textDark,
-                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],

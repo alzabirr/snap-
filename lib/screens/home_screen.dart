@@ -140,12 +140,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: BackdropFilter(
                           filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                           child: Container(
-                            height: 56,
+                            height: 52,
                             decoration: BoxDecoration(
                               color: surface.withValues(alpha: 0.55),
                               borderRadius: BorderRadius.circular(28),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.35),
+                                color: textDark.withValues(alpha: 0.15),
                                 width: 1,
                               ),
                             ),
@@ -217,8 +217,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: BackdropFilter(
                           filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                           child: Container(
-                            width: 56,
-                            height: 56,
+                            width: 52,
+                            height: 52,
                             decoration: BoxDecoration(
                               color: surface.withValues(alpha: 0.55),
                               shape: BoxShape.circle,
@@ -254,12 +254,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                     child: Container(
-                      height: 72,
+                      height: 66,
                       decoration: BoxDecoration(
                         color: surface.withValues(alpha: 0.55),
                         borderRadius: BorderRadius.circular(40),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.35),
+                          color: textDark.withValues(alpha: 0.15),
                           width: 1,
                         ),
                         boxShadow: [
@@ -321,8 +321,8 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        width: 52,
-        height: 52,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
           color: isSelected
               ? (isDarkMode ? Colors.white : const Color(0xFF1C1C1E))

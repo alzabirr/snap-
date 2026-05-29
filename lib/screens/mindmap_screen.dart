@@ -139,10 +139,10 @@ class _MindmapScreenState extends State<MindmapScreen> with TickerProviderStateM
           _revealController.forward(from: 0);
         }
       } else if (hitResult.node != null) {
-        // Show edit/delete dialog
+        // Show beautiful full-text viewer dialog (Read-only, no edit/delete option)
         showCupertinoDialog(
           context: context,
-          builder: (context) => NodeEditDialog(
+          builder: (context) => NodeViewDialog(
             node: hitResult.node!,
             isBranch: hitResult.isBranch,
           ),

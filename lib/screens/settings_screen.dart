@@ -214,9 +214,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Text(
                         'Settings',
                         style: headingStyle(
-                          fontSize: 28,
+                          fontSize: 18,
                           color: textDark,
-                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
@@ -453,7 +452,7 @@ class _ModelStatusCard extends StatelessWidget {
                       hasModel
                           ? 'Chat, New Snap and mind map AI are enabled.'
                           : isDownloading
-                              ? 'Downloading Gemma model... $percent%'
+                              ? 'Downloading AI model... $percent%'
                               : 'Starts automatically after app install.',
                       style: bodyStyle(
                         fontSize: 13,

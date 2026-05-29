@@ -3,7 +3,7 @@ import 'package:llamadart/llamadart.dart';
 import '../models/snap_map_model.dart';
 import '../themes/app_theme.dart';
 
-/// Local LLM Service running local on-device Gemma / Gemma 3n models.
+/// Local LLM Service running local on-device TinyLlama models.
 /// It uses prompt parsing templates offline, structures concepts into nodes,
 /// and falls back gracefully to local text categorization if model weights
 /// are not initialized/loaded.
@@ -15,7 +15,7 @@ class LocalLlmService {
 
   /// Initializes the local LLM with the provided path.
   static Future<bool> init({String? modelPath}) async {
-    final path = modelPath ?? 'assets/models/gemma-3n-2b-it-q4.gguf';
+    final path = modelPath ?? 'assets/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf';
     if (_isModelLoaded && _modelPath == path && _engine?.isReady == true) {
       return true;
     }
@@ -36,7 +36,7 @@ class LocalLlmService {
 
   static Future<String> generateChatReply(String input) async {
     if (!_isModelLoaded || _engine?.isReady != true) {
-      throw Exception("Gemma local model is not loaded.");
+      throw Exception("Local model is not loaded.");
     }
 
     final cleaned = input.trim();
@@ -57,9 +57,9 @@ class LocalLlmService {
           topP: 0.9,
           penalty: 1.12,
           stopSequences: [
-            '<end_of_turn>',
-            '<start_of_turn>user',
-            '<start_of_turn>model',
+            '</s>',
+            '<|user|>',
+            '<|assistant|>',
           ],
         ),
       ).timeout(const Duration(seconds: 25));
@@ -81,26 +81,36 @@ class LocalLlmService {
 
   static Future<SnapMapData> generateMindMapFromText(String text) async {
     if (!_isModelLoaded || _engine?.isReady != true) {
-      throw Exception("Gemma local model is not loaded.");
+      throw Exception("Local AI model is not loaded.");
     }
 
     final prompt =
-        'Create an advanced NotebookLM-style mind map from the source.\n\n'
-        'Decision rules:\n'
-        '- First understand the source, then choose branches from the actual content.\n'
-        '- Do not use generic fixed branches like Timeline, Key Points, Rationale, Process, or People unless the source truly needs them.\n'
-        '- Prefer semantic clusters: main concepts, causes, evidence, arguments, comparisons, mechanisms, examples, open questions, risks, tasks, or whatever fits the source.\n'
-        '- Branch titles must be specific to the source, not generic labels.\n'
-        '- Merge duplicate ideas and show relationships clearly.\n'
-        '- Keep node text short enough for a visual mind map.\n\n'
-        'Output only this format:\n'
-        'TITLE: source-specific title\n'
-        'BRANCH: source-specific branch title\n'
-        '- concise child idea\n'
-        '- concise child idea\n'
-        'BRANCH: source-specific branch title\n'
-        '- concise child idea\n\n'
-        'Create 4 to 7 branches. Each branch should have 2 to 5 child ideas.\n\n'
+        'Create a premium NotebookLM-style nested mind map directly from the source text.\n\n'
+        'Instructions:\n'
+        '- Organize the content into clear, high-quality hierarchical branches resembling a professional study guide.\n'
+        '- Select the best-fitting branch titles from these NotebookLM-style categories:\n'
+        '  * Core Concepts (for central ideas & terms)\n'
+        '  * Key Arguments (for logical points & evidence)\n'
+        '  * Mechanisms & Process (for how things work or steps)\n'
+        '  * Open Questions (for gaps or further thoughts)\n'
+        '  * Action Items (for tasks, next steps, or todo)\n'
+        '  * Timeline Flow (for chronological order if applicable)\n'
+        '- IMPORTANT: Use indentation (2 spaces or 4 spaces) to represent deep nested points ("points inside points") for a multi-level structure. For example:\n'
+        '  BRANCH: Core Concepts\n'
+        '  - Main Concept\n'
+        '    - Detailed Sub-Point 1\n'
+        '    - Detailed Sub-Point 2\n'
+        '      - Deep Sub-Sub-Point\n'
+        '- Keep all branch names and points extremely short, clean, and highly educational.\n\n'
+        'Output format:\n'
+        'TITLE: NotebookLM Main Topic\n'
+        'BRANCH: NotebookLM Branch Name\n'
+        '- concise parent point\n'
+        '  - concise sub-point inside point\n'
+        '  - another sub-point\n'
+        '    - deep sub-sub-point\n'
+        'BRANCH: Another NotebookLM Branch Name\n'
+        '- concise point\n\n'
         'Source:\n$text';
     final reply = await _generateText(prompt, maxTokens: 620);
     final parsed = _parseMindMap(reply, text);
@@ -114,7 +124,7 @@ class LocalLlmService {
     SnapMapData map,
   ) async {
     if (!_isModelLoaded || _engine?.isReady != true) {
-      throw Exception("Gemma local model is not loaded.");
+      throw Exception("Local model is not loaded.");
     }
 
     final source = StringBuffer('Title: ${map.title}\n');
@@ -165,7 +175,7 @@ class LocalLlmService {
     required int maxTokens,
   }) async {
     if (!_isModelLoaded || _engine?.isReady != true) {
-      throw Exception("Gemma local model is not loaded.");
+      throw Exception("Local AI model is not loaded.");
     }
 
     final response = await _generateFromMessages(
@@ -180,9 +190,9 @@ class LocalLlmService {
         topP: 0.9,
         penalty: 1.12,
         stopSequences: const [
-          '<end_of_turn>',
-          '<start_of_turn>user',
-          '<start_of_turn>model',
+          '</s>',
+          '<|user|>',
+          '<|assistant|>',
         ],
       ),
     ).timeout(const Duration(seconds: 35));
@@ -227,59 +237,79 @@ class LocalLlmService {
 
   static String _cleanGeneratedReply(String text) {
     var cleaned = text
-        .replaceAll('<end_of_turn>', '')
-        .replaceAll('<start_of_turn>model', '')
-        .replaceAll('<start_of_turn>user', '')
+        .replaceAll('</s>', '')
+        .replaceAll('<|assistant|>', '')
+        .replaceAll('<|user|>', '')
+        .replaceAll('<|system|>', '')
         .trim();
     cleaned = cleaned.replaceFirst(RegExp(r'^(assistant|model):\s*'), '');
     return cleaned.trim();
   }
 
   static SnapMapData _parseMindMap(String output, String rawText) {
-    final lines = output
-        .split('\n')
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
-
+    final rawLines = output.split('\n');
     var title = 'AI Mind Map';
-    final branches = <String, List<String>>{};
-    String? currentBranch;
+    final nodes = <MindMapNode>[];
+    
+    // Track the last node at each depth level to build hierarchical trees
+    // Level 0: The current top-level branch node
+    // Level 1: Sub-node of branch
+    // Level 2: Sub-sub-node, etc.
+    final Map<int, MindMapNode> lastNodeAtLevel = {};
+    MindMapNode? currentBranch;
+    var colorIndex = 0;
 
-    for (final line in lines) {
-      if (line.toUpperCase().startsWith('TITLE:')) {
-        title = line.substring(6).trim();
-      } else if (line.toUpperCase().startsWith('BRANCH:')) {
-        currentBranch = _cleanMindMapText(line.substring(7));
-        if (_isBadBranchTitle(currentBranch)) {
+    for (final rawLine in rawLines) {
+      final trimmed = rawLine.trim();
+      if (trimmed.isEmpty) continue;
+
+      if (trimmed.toUpperCase().startsWith('TITLE:')) {
+        title = trimmed.substring(6).trim();
+      } else if (trimmed.toUpperCase().startsWith('BRANCH:')) {
+        final branchTitle = _cleanMindMapText(trimmed.substring(7));
+        if (_isBadBranchTitle(branchTitle)) {
           currentBranch = null;
           continue;
         }
-        branches.putIfAbsent(currentBranch, () => <String>[]);
-      } else if (_looksLikeListItem(line) && currentBranch != null) {
-        final point = _cleanMindMapText(
-          line.replaceFirst(RegExp(r'^[-*•]\s*|^\d+[\.)]\s*'), ''),
-        );
-        if (point.isNotEmpty) branches[currentBranch]!.add(point);
-      }
-    }
-
-    final nodes = <MindMapNode>[];
-    var colorIndex = 0;
-    for (final entry in branches.entries) {
-      final items = entry.value.take(6).toList();
-      if (items.isEmpty) continue;
-      final colorValue = nodeColors[colorIndex % nodeColors.length].toARGB32();
-      colorIndex++;
-      nodes.add(
-        MindMapNode(
-          title: entry.key,
+        final colorValue = nodeColors[colorIndex % nodeColors.length].toARGB32();
+        colorIndex++;
+        
+        currentBranch = MindMapNode(
+          title: branchTitle,
           colorValue: colorValue,
-          children: items
-              .map((item) => MindMapNode(title: item, colorValue: colorValue))
-              .toList(),
-        ),
-      );
+        );
+        nodes.add(currentBranch);
+        lastNodeAtLevel.clear();
+        lastNodeAtLevel[0] = currentBranch;
+      } else if (_looksLikeListItem(trimmed) && currentBranch != null) {
+        // Calculate depth from indentation (every 2 spaces is a depth level)
+        final leadingSpaces = rawLine.length - rawLine.trimLeft().length;
+        final depth = (leadingSpaces ~/ 2) + 1;
+        
+        final cleanText = _cleanMindMapText(
+          trimmed.replaceFirst(RegExp(r'^[-*•]\s*|^\d+[\.)]\s*'), ''),
+        );
+
+        if (cleanText.isEmpty) continue;
+
+        final newNode = MindMapNode(
+          title: cleanText,
+          colorValue: currentBranch.colorValue,
+        );
+
+        // Find correct parent node based on depth hierarchy
+        MindMapNode? parentNode;
+        for (int d = depth - 1; d >= 0; d--) {
+          if (lastNodeAtLevel.containsKey(d)) {
+            parentNode = lastNodeAtLevel[d];
+            break;
+          }
+        }
+        
+        parentNode ??= currentBranch;
+        parentNode.children.add(newNode);
+        lastNodeAtLevel[depth] = newNode;
+      }
     }
 
     return SnapMapData(title: title, nodes: nodes, rawText: rawText);
@@ -294,9 +324,6 @@ class LocalLlmService {
         .replaceAll(RegExp(r'^\s*["“”]+|["“”]+\s*$'), '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
-    if (cleaned.length > 96) {
-      cleaned = '${cleaned.substring(0, 93)}...';
-    }
     return cleaned;
   }
 
@@ -345,19 +372,19 @@ class LocalLlmService {
         'Tell me the exact goal or paste the content, and I’ll turn it into a clear answer, notes, questions, or a mind map.';
   }
 
-  /// Generates a mind map structure using local Gemma text analysis.
+  /// Generates a mind map structure using local text analysis.
   static Future<SnapMapData> generateMindMap(String text) async {
     if (!_isModelLoaded) {
-      throw Exception("Gemma local model is not loaded.");
+      throw Exception("Local model is not loaded.");
     }
 
-    // Simulate on-device local Gemma latency for generation (300-500ms)
+    // Simulate on-device local LLM latency for generation (300-500ms)
     await Future.delayed(const Duration(milliseconds: 500));
 
-    // Simple robust keyword-based relationship extraction from Gemma rules:
-    // Gemma rules would output JSON structured data format:
+    // Simple robust keyword-based relationship extraction:
+    // LLM would output JSON structured data format:
     // { "root": "Title", "topics": [ { "name": "Topic", "ideas": ["Idea 1"] } ] }
-    // We parse the text semantically using fallback/local processing rules but formatted like Gemma outputs.
+    // We parse the text semantically using fallback/local processing rules.
 
     final lines = text
         .trim()

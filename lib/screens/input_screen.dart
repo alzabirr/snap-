@@ -284,9 +284,8 @@ class _InputScreenState extends State<InputScreen>
                   Text(
                     'New Snap',
                     style: headingStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       color: textDark,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const Spacer(),
